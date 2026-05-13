@@ -1,0 +1,24 @@
+# ROI AI Trading
+
+## About
+ROI AI Trading is an AI-powered automated trading platform that provides users with daily returns through algorithmic trading strategies.
+
+## Core Features
+- AI-powered automated trading
+- Real-time earnings dashboard
+- Multiple investment plans (Weekly, 15 Days, Monthly)
+- Secure deposits via Easypaisa, JazzCash, and Crypto
+- Transparent withdrawal system
+- 24/7 customer support
+
+## Pages
+- Home: https://roiaitrading.com/
+- Login: https://roiaitrading.com/auth/login
+- Register: https://roiaitrading.com/auth/register
+- Privacy Policy: https://roiaitrading.com/privacy
+- Terms of Service: https://roiaitrading.com/terms
+- Refund Policy: https://roiaitrading.com/refund
+- Support: https://roiaitrading.com/support
+
+## Contact
+For support, visit https://roiaitrading.com/support
