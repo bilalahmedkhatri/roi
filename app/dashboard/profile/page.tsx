@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Card from "@/components/ui/Card";
+import { supabase } from "@/lib/supabase/client";
 
 export default function ProfilePage() {
   const [name, setName] = useState("");
@@ -10,8 +11,55 @@ export default function ProfilePage() {
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [withdrawAddress, setWithdrawAddress] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); };
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      setEmail(user.email || "");
+      const { data: profile } = await supabase
+        .from("users")
+        .select("name, phone, address, city, withdraw_address")
+        .eq("auth_id", user.id)
+        .single();
+      if (profile) {
+        setName(profile.name || "");
+        setPhone(profile.phone || "");
+        setAddress(profile.address || "");
+        setCity(profile.city || "");
+        setWithdrawAddress(profile.withdraw_address || "");
+      }
+      setLoading(false);
+    });
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setSaved(false);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    await supabase
+      .from("users")
+      .update({ name, phone, address, city, withdraw_address: withdrawAddress, updated_at: new Date().toISOString() })
+      .eq("auth_id", user.id);
+
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -20,7 +68,7 @@ export default function ProfilePage() {
         <p className="text-sm text-muted">Manage your personal details</p>
       </div>
       <Card>
-        <form onSubmit={handleSubmit} className="space-y-5 max-w-full">
+        <form onSubmit={handleSubmit} className="space-y-5 max-w-md">
           <div>
             <label className="block text-sm font-medium">Full Name</label>
             <input type="text" value={name} onChange={(e) => setName(e.target.value)}
@@ -29,9 +77,8 @@ export default function ProfilePage() {
           </div>
           <div>
             <label className="block text-sm font-medium">Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              className="mt-1.5 block w-full rounded-xl border border-border bg-transparent px-4 py-2.5 text-sm focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors placeholder:text-muted"
-              placeholder="you@example.com" />
+            <input type="email" value={email} disabled
+              className="mt-1.5 block w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-muted cursor-not-allowed" />
           </div>
           <div>
             <label className="block text-sm font-medium">Phone</label>
@@ -58,8 +105,14 @@ export default function ProfilePage() {
               placeholder="BTC / ETH / USDT wallet address" />
             <p className="mt-1 text-xs text-muted">Your crypto wallet address for withdrawals</p>
           </div>
-          <button type="submit" className="rounded-xl bg-primary w-full py-2.5 text-sm font-medium text-white hover:bg-primary-dark transition-colors">
-            Save Changes
+
+          {saved && (
+            <p className="text-xs text-primary font-medium">Profile updated successfully.</p>
+          )}
+
+          <button type="submit" disabled={saving}
+            className="rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-40 transition-colors">
+            {saving ? "Saving..." : "Save Changes"}
           </button>
         </form>
       </Card>

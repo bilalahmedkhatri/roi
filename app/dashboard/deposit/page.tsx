@@ -1,24 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Card from "@/components/ui/Card";
+import { supabase } from "@/lib/supabase/client";
 import { detectPakistan } from "@/lib/country";
 
 type Method = "easypaisa" | "jazzcash" | "crypto";
 
-const CRYPTO_ADDRESSES = {
-  btc: "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
-  eth: "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18",
-  sol: "7EcDhSYGxXyscszYEp35KHN8vvw3svAuF9UNNQm9JQ7N",
-};
-
-const TILL_IDS = {
-  easypaisa: "03001234567",
-  jazzcash: "03007654321",
-};
-
 export default function DepositPage() {
   const isPK = detectPakistan();
+  const [isVerified, setIsVerified] = useState(true);
   const [method, setMethod] = useState<Method>("easypaisa");
   const [amount, setAmount] = useState("");
   const [transactionId, setTransactionId] = useState("");
@@ -26,6 +17,21 @@ export default function DepositPage() {
   const [senderNumber, setSenderNumber] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
+  const [settings, setSettings] = useState<{
+    crypto_addresses: Record<string, string>;
+    till_ids: Record<string, string>;
+    bonus_percent: number;
+  } | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user?.email_confirmed_at) setIsVerified(false);
+    });
+    supabase.rpc("get_site_settings").single().then(({ data }) => {
+      if (data) setSettings(data as any);
+    });
+  }, []);
 
   const num = parseFloat(amount) || 0;
   const isCrypto = method === "crypto";
@@ -34,17 +40,30 @@ export default function DepositPage() {
 
   const pkMethods: Method[] = ["easypaisa", "jazzcash", "crypto"];
   const intlMethods: Method[] = ["crypto"];
-
   const availableMethods = isPK ? pkMethods : intlMethods;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!valid) return;
+    if (!valid || !settings) return;
+    setError("");
     setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
-      setSubmitted(true);
-    }, 2000);
+
+    const { error: rpcError } = await supabase.rpc("submit_deposit", {
+      p_amount: num,
+      p_method: method === "easypaisa" ? "Easypaisa" : method === "jazzcash" ? "JazzCash" : "Crypto",
+      p_transaction_id: transactionId.trim(),
+      p_sender_name: senderName.trim(),
+      p_sender_number: senderNumber.trim(),
+    });
+
+    setSubmitting(false);
+
+    if (rpcError) {
+      setError(rpcError.message);
+      return;
+    }
+
+    setSubmitted(true);
   };
 
   if (submitted) {
@@ -72,6 +91,14 @@ export default function DepositPage() {
     );
   }
 
+  const methodLabel = (m: Method) =>
+    m === "crypto"
+      ? `Crypto (Min $25 USD - +10% bonus)`
+      : `${m.charAt(0).toUpperCase() + m.slice(1)} (Min Rs. 1,500)`;
+
+  const tillId = method !== "crypto" ? settings?.till_ids?.[method] : null;
+  const cryptoAddresses = settings?.crypto_addresses;
+
   return (
     <div className="space-y-6">
       <div>
@@ -79,56 +106,50 @@ export default function DepositPage() {
         <p className="text-sm text-muted">Add funds to your account</p>
       </div>
 
+      {!isVerified && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm flex items-center gap-3">
+          <svg className="h-5 w-5 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+          </svg>
+          <p className="text-amber-800">Please verify your email before making a deposit.</p>
+        </div>
+      )}
+
       <Card>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium mb-2">Payment Method</label>
-            <select value={method} onChange={(e) => { setMethod(e.target.value as Method); setSubmitted(false); }}
+            <select value={method} onChange={(e) => setMethod(e.target.value as Method)}
               className="block w-full rounded-xl border border-border bg-surface-elevated px-4 py-2.5 text-sm focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
             >
               {availableMethods.map((m) => (
-                <option key={m} value={m} className="capitalize">
-                  {m === "crypto" ? `Crypto (Min $25 USD - +10% bonus)` : `${m.charAt(0).toUpperCase() + m.slice(1)} (Min Rs. 1,500)`}
-                </option>
+                <option key={m} value={m}>{methodLabel(m)}</option>
               ))}
             </select>
           </div>
 
-          {isPK && !isCrypto && (
+          {isPK && !isCrypto && tillId && (
             <div className="rounded-xl border border-border bg-surface p-5 text-center space-y-2">
               <p className="text-xs font-medium text-muted">Send money to this Till ID</p>
-              <p className="text-2xl font-bold tracking-wider text-primary">{TILL_IDS[method as "easypaisa" | "jazzcash"]}</p>
+              <p className="text-2xl font-bold tracking-wider text-primary">{tillId}</p>
               <p className="text-sm text-muted">Account: ROI AI Trading ({method === "easypaisa" ? "Easypaisa" : "JazzCash"})</p>
             </div>
           )}
 
-          {isPK && isCrypto && (
+          {(isCrypto || !isPK) && cryptoAddresses && (
             <div className="rounded-xl border border-border bg-surface p-4 space-y-3">
               <p className="text-xs font-medium text-muted">Send crypto to one of these addresses:</p>
-              {Object.entries(CRYPTO_ADDRESSES).map(([coin, addr]) => (
+              {Object.entries(cryptoAddresses).map(([coin, addr]) => (
                 <div key={coin} className="text-sm">
                   <span className="font-medium uppercase text-primary">{coin}:</span>{" "}
                   <span className="text-muted break-all">{addr}</span>
                 </div>
               ))}
-              <p className="text-xs text-muted">Min $25 - receives +10% bonus</p>
+              <p className="text-xs text-muted">Min $25 — receives +10% bonus</p>
             </div>
           )}
 
-          {!isPK && method === "crypto" && (
-            <div className="rounded-xl border border-border bg-surface p-4 space-y-3">
-              <p className="text-xs font-medium text-muted">Send crypto to one of these addresses:</p>
-              {Object.entries(CRYPTO_ADDRESSES).map(([coin, addr]) => (
-                <div key={coin} className="text-sm">
-                  <span className="font-medium uppercase text-primary">{coin}:</span>{" "}
-                  <span className="text-muted break-all">{addr}</span>
-                </div>
-              ))}
-              <p className="text-xs text-muted">Min $25 - receives +10% bonus</p>
-            </div>
-          )}
-
-          {!isPK && method === "crypto" && (
+          {!isPK && (
             <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
               <p className="text-xs text-blue-400 leading-relaxed">
                 Current rates: 1 BTC ≈ $67,542 | 1 ETH ≈ $3,457 | 1 SOL ≈ $142.56
@@ -141,21 +162,17 @@ export default function DepositPage() {
               <ol className="text-xs text-amber-800 space-y-1.5 list-decimal list-inside">
                 <li>Take the Till ID above.</li>
                 <li>Go to {method === "easypaisa" ? "Easypaisa" : "JazzCash"} and send money to that Till ID.</li>
-                <li>Come back to this website and enter the transaction details below.</li>
-                <li>Click Submit - your request will be approved in 5 to 10 minutes.</li>
-                <li>If your deposit is not approved, contact support with the deposit slip screenshot.</li>
+                <li>Come back and enter the transaction details below.</li>
+                <li>Click Submit — approved in 5 to 10 minutes.</li>
+                <li>If not approved, contact support with the deposit slip screenshot.</li>
               </ol>
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium">
-              Amount ({isCrypto ? "USD" : "PKR"})
-            </label>
+            <label className="block text-sm font-medium">Amount ({isCrypto ? "USD" : "PKR"})</label>
             <div className="mt-1.5 relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted">
-                {isCrypto ? "$" : "Rs."}
-              </span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted">{isCrypto ? "$" : "Rs."}</span>
               <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)}
                 className="block w-full rounded-xl border border-border bg-transparent pl-10 pr-4 py-2.5 text-sm focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
                 placeholder="0.00" min={min} step="0.01" />
@@ -192,34 +209,18 @@ export default function DepositPage() {
             </div>
           </div>
 
-          <button type="submit" disabled={!valid || submitting}
+          {error && (
+            <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-3">
+              <p className="text-xs text-red-400">{error}</p>
+            </div>
+          )}
+
+          <button type="submit" disabled={!valid || submitting || !isVerified}
             className="w-full rounded-xl bg-primary py-2.5 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-40 transition-colors">
             {submitting ? "Submitting..." : "Submit Deposit Request"}
           </button>
         </form>
       </Card>
-
-      <div className="rounded-xl border border-border bg-surface-elevated p-5">
-        <h3 className="text-sm font-semibold">How to Deposit</h3>
-        <ul className="mt-3 space-y-1.5 text-sm text-muted">
-          {isPK && !isCrypto ? (
-            <>
-              <li>1. Take the Till ID shown above.</li>
-              <li>2. Go to {method === "easypaisa" ? "Easypaisa" : "JazzCash"} and send money to that Till ID.</li>
-              <li>3. Come back to this website and enter the Transaction ID, your name, and number.</li>
-              <li>4. Click Submit - your request will be approved in 5 to 10 minutes.</li>
-              <li>5. If your deposit is not approved, contact support with the deposit slip screenshot.</li>
-            </>
-          ) : (
-            <>
-              <li>1. Send crypto to one of the addresses above (BTC, ETH, or SOL).</li>
-              <li>2. Minimum $25 - you receive a 10% bonus on crypto deposits.</li>
-              <li>3. Enter the transaction ID from your wallet.</li>
-              <li>4. Your deposit will be confirmed within 5 to 10 minutes.</li>
-            </>
-          )}
-        </ul>
-      </div>
     </div>
   );
 }

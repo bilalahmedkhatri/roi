@@ -1,0 +1,23 @@
+Since you already have the migration files in supabase/migrations/, here's the workflow:
+1. Initialize Supabase CLI in the project
+npx supabase init
+This creates supabase/config.toml (your current migrations folder is preserved).
+2. Link to your Supabase project
+Get your project ref ID from your Supabase dashboard URL:
+https://supabase.com/dashboard/project/sjnatbxtdnvjsjkecxey
+npx supabase link --project-ref sjnatbxtdnvjsjkecxey
+It will prompt for your database password (set this in Supabase Dashboard → Project Settings → Database → Reset password if you haven't set one).
+3. Push migrations to remote
+npx supabase db push
+This compares your local migration files with what's already applied in the remote database and applies any new ones in order (001 → 002 → 003 → 004 → 005 → 006).
+Important notes
+SQL Editor approach	CLI approach
+You paste and run manually	db push runs all unapplied migrations in order
+No version tracking	Tracks which migrations are already applied in a supabase_migrations.schema_migrations table
+Easy to miss an order	Always runs in sequential order
+Before running db push, make sure you've already deleted the old profiles table and any manually-run SQL from the Editor so there are no conflicts. The CLI checks supabase_migrations.schema_migrations to know which files have already been applied — since you've been using SQL Editor, there will be no history in the CLI, so it will try to apply everything from 001 onward.
+To handle this, either:
+- 
+Option A: First run db push (will error on tables that already exist, but our IF NOT EXISTS guards protect it)
+- 
+Option B: Run supabase db remote commit to snapshot current state, then it will only apply files that come after

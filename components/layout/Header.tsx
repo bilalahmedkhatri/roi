@@ -31,6 +31,9 @@ export default function Header() {
           <Link href="/support" className="text-sm font-medium text-muted hover:text-foreground transition-colors">
             Support
           </Link>
+          <Link href="/game" className="text-sm font-medium text-[#00ff88] hover:text-[#00cc6a] transition-colors">
+            Games
+          </Link>
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
@@ -76,6 +79,9 @@ export default function Header() {
           </Link>
           <Link href="/support" onClick={() => setMenuOpen(false)} className="block rounded-lg px-3 py-2 text-sm font-medium text-muted hover:text-foreground hover:bg-surface transition-colors">
             Support
+          </Link>
+          <Link href="/game" onClick={() => setMenuOpen(false)} className="block rounded-lg px-3 py-2 text-sm font-medium text-[#00ff88] hover:text-[#00cc6a] hover:bg-surface transition-colors">
+            Games
           </Link>
           <div className="pt-3 flex gap-3">
             <Link href="/auth/login" onClick={() => setMenuOpen(false)} className="flex-1 text-center rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground/80 hover:bg-surface transition-colors">
