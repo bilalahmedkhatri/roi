@@ -31,9 +31,9 @@ export default function Header() {
           <Link href="/support" className="text-sm font-medium text-muted hover:text-foreground transition-colors">
             Support
           </Link>
-          <Link href="/game" className="text-sm font-medium text-[#00ff88] hover:text-[#00cc6a] transition-colors">
+          {/* <Link href="/game" className="text-sm font-medium text-[#00ff88] hover:text-[#00cc6a] transition-colors">
             Games
-          </Link>
+          </Link> */}
         </nav>
 
         <div className="hidden md:flex items-center gap-3">

@@ -1,6 +1,10 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
+import SignalDetailsDrawer, {
+  type AnalysisSnapshot,
+  type DrawerType,
+} from "./SignalDetailsDrawer"
 
 let sym = "BTCUSDT"
 let base = "BTC"
@@ -8,6 +12,9 @@ let scanning = false
 let fngCache: { d: any; ts: number } | null = null
 let liqEvents: { s: string; side: string; usd: number; ts: number }[] = []
 let liqWS: WebSocket | null = null
+
+let openDrawer: ((type: DrawerType, pair: string) => void) | null = null
+let updateSnapshot: ((data: AnalysisSnapshot) => void) | null = null
 
 function fmt(n: number, d = 2) {
   return Number(n).toLocaleString("en-US", {
@@ -582,8 +589,18 @@ async function runAnalysis() {
         const btn = document.createElement("button")
         btn.className = "v-act"
         btn.innerHTML = `${iconHTML(a.icon, 12)} <span style="margin-left:4px">${a.label} ↗</span>`
-        btn.onclick = () =>
-          alert("Open this in Claude.ai to use AI follow-up questions.")
+        const drawerType: Record<string, DrawerType> = {
+          "Entry strategy": "entry-strategy",
+          "Risk management": "risk-management",
+          "What to wait for": "what-to-wait-for",
+          "Key levels": "key-levels",
+          "Downside risks": "downside-risks",
+          "How to hedge": "how-to-hedge",
+        }
+        btn.onclick = () => {
+          const dt = drawerType[a.label]
+          if (dt && openDrawer) openDrawer(dt, base + "/USDT")
+        }
         vaEl.appendChild(btn)
       })
     }
@@ -594,6 +611,23 @@ async function runAnalysis() {
           nodes: Array.from(vc.querySelectorAll("[data-lucide]")),
         })
       } catch { }
+    }
+
+    if (updateSnapshot) {
+      updateSnapshot({
+        price,
+        change,
+        rsi,
+        ma50,
+        ma200,
+        volRatio,
+        pricePos,
+        macdHist: macd?.hist ?? 0,
+        pct,
+        bullCnt,
+        bearCnt,
+        neutCnt,
+      })
     }
   } catch (err: any) {
     showErr("API error: " + err.message)
@@ -647,7 +681,17 @@ function initStaticIcons() {
 }
 
 export default function AITradingBrain() {
+  const [drawer, setDrawer] = useState<{
+    isOpen: boolean
+    type: DrawerType | ""
+    coinPair: string
+  }>({ isOpen: false, type: "", coinPair: "" })
+  const [snapshot, setSnapshot] = useState<AnalysisSnapshot | null>(null)
+
   useEffect(() => {
+    openDrawer = (type, pair) => setDrawer({ isOpen: true, type, coinPair: pair })
+    updateSnapshot = setSnapshot
+
     const script = document.createElement("script")
     script.src = "https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"
     script.async = true
@@ -663,6 +707,8 @@ export default function AITradingBrain() {
     }, 90000)
 
     return () => {
+      openDrawer = null
+      updateSnapshot = null
       if (liqWS) liqWS.close()
       clearInterval(interval)
     }
@@ -926,6 +972,14 @@ export default function AITradingBrain() {
           </div>
         </div>
       </div>
+
+      <SignalDetailsDrawer
+        isOpen={drawer.isOpen}
+        onClose={() => setDrawer({ isOpen: false, type: "", coinPair: "" })}
+        type={drawer.type}
+        coinPair={drawer.coinPair}
+        data={snapshot}
+      />
     </>
   )
 }
