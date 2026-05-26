@@ -1,6 +1,7 @@
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import TradingDashboard from "@/components/landing/TradingDashboard";
+import AITradingBrain from "@/components/trading/AITradingBrain";
 
 export default function Home() {
   return (
@@ -142,16 +143,16 @@ export default function Home() {
       </section>
 
       {/* ─── Strategy ─── */}
-      <section id="strategy" className="px-4 py-20 sm:py-28">
+      <section id="strategy" className="px-4 sm:py-28">
         <div className="mx-auto max-w-7xl">
-          <div className="grid gap-12 lg:grid-cols-2 items-center">
+          <div className="grid gap-12 grid-cols-1 md:grid-cols-2">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-primary">Our Edge</p>
               <h2 className="mt-3 text-3xl sm:text-4xl font-bold tracking-tight">AI Trading Strategy</h2>
               <p className="mt-4 text-muted leading-relaxed">
                 We deploy proprietary machine learning models that analyze market microstructure and execute trades with precision.
               </p>
-              <div className="mt-8 space-y-5">
+              <div className="mt-12 space-y-5">
                 {[
                   { title: "Machine Learning Models", desc: "Our algorithms process terabytes of historical and real-time data to identify profitable patterns." },
                   { title: "Risk Management", desc: "Multi-layer risk controls protect capital through position sizing, stop-losses, and diversification." },
@@ -169,27 +170,24 @@ export default function Home() {
                 ))}
               </div>
             </div>
-            <div className="rounded-2xl border border-border bg-gradient-to-br from-primary/[0.03] to-transparent p-6 sm:p-8">
-              <div className="aspect-video rounded-xl bg-gradient-to-br from-primary/5 to-surface border border-border flex items-center justify-center">
-                <div className="text-center text-muted">
-                  <svg className="mx-auto h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
-                  <p className="mt-3 text-xs font-medium">Performance Dashboard</p>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </section>
 
-      {/* ─── Why Us ─── */}
-      <section className="border-y border-border bg-surface/30 px-4 py-20 sm:py-28">
-        <div className="mx-auto max-w-7xl">
+      <section className="px-4 py-8 md:py-10">
+        <div className="bg-surface-elevated mx-auto max-w-7xl px-4 py-8 md:py-10 rounded-[12px]">
+          <AITradingBrain />
+        </div>
+      </section>
+
+      <section className="px-4 py-10 md:py-15">
+        <div className="mx-auto max-w-7xl mt-5">
           <div className="mx-auto max-w-xl text-center">
             <p className="text-xs font-semibold uppercase tracking-widest text-primary">Why Us</p>
             <h2 className="mt-3 text-3xl sm:text-4xl font-bold tracking-tight">Built for Performance</h2>
             <p className="mt-4 text-muted leading-relaxed">Every feature is engineered to give you an edge in the markets.</p>
           </div>
-          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-15 grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {[
               { title: "AI-Powered", desc: "Advanced ML models drive every trading decision in real time." },
               { title: "Live Dashboard", desc: "Track earnings, portfolio performance, and market data instantly." },
@@ -211,7 +209,7 @@ export default function Home() {
       </section>
 
       {/* ─── Testimonials ─── */}
-      <section className="px-4 py-20 sm:py-28">
+      <section className="px-4 py-10 sm:py-15">
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-xl text-center">
             <p className="text-xs font-semibold uppercase tracking-widest text-primary">Testimonials</p>

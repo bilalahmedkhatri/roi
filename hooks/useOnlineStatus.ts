@@ -16,5 +16,5 @@ function subscribeToOnlineStatus(callback: () => void) {
 }
 
 export function useOnlineStatus() {
-  return useSyncExternalStore(subscribeToOnlineStatus, getOnlineStatus)
+  return useSyncExternalStore(subscribeToOnlineStatus, getOnlineStatus, () => true)
 }

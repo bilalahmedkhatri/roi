@@ -9,6 +9,7 @@ import NetworkErrorBanner from "@/components/ui/NetworkErrorBanner";
 const RATE_LIMIT_WINDOW = 2000;
 
 export default function ResetPasswordPage() {
+  const isOnline = useOnlineStatus();
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [found, setFound] = useState(false);
@@ -108,6 +109,8 @@ export default function ResetPasswordPage() {
           <p className="mt-1.5 text-sm text-muted">Enter your email and we&apos;ll send you a reset link</p>
         </div>
 
+        <NetworkErrorBanner />
+
         <div className="rounded-2xl border border-border bg-surface-elevated p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -138,10 +141,10 @@ export default function ResetPasswordPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !isOnline}
               className="w-full rounded-xl bg-primary py-2.5 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-40 transition-colors"
             >
-              {loading && !found ? "Checking..." : loading ? "Sending..." : "Send reset link"}
+              {loading && !found ? "Checking..." : loading ? "Sending..." : !isOnline ? "No internet connection" : "Send reset link"}
             </button>
           </form>
         </div>

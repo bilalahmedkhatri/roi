@@ -50,18 +50,18 @@ function showErr(msg: string) {
   box.style.display = "flex"
   box.innerHTML = `${iconHTML("alert-circle", 14)} <span style="margin-left:6px">${msg}</span>`
   try {
-    ;(window as any).lucide.createIcons({
+    ; (window as any).lucide.createIcons({
       nodes: [box.querySelector("[data-lucide]")],
     })
-  } catch {}
+  } catch { }
   setTimeout(() => (box.style.display = "none"), 9000)
 }
 
 function selectTicker(s: string, b: string) {
   if (scanning) return
-  ;["BTC", "ETH", "SOL"].forEach((t) =>
-    document.getElementById("btn-" + t)?.classList.remove("active"),
-  )
+    ;["BTC", "ETH", "SOL"].forEach((t) =>
+      document.getElementById("btn-" + t)?.classList.remove("active"),
+    )
   document.getElementById("btn-" + b)?.classList.add("active")
   sym = s
   base = b
@@ -72,7 +72,7 @@ function connectLiqWS() {
   if (liqWS) {
     try {
       liqWS.close()
-    } catch {}
+    } catch { }
   }
   liqWS = new WebSocket("wss://fstream.binance.com/ws/!forceOrder@arr")
   liqWS.onmessage = (e) => {
@@ -86,9 +86,9 @@ function connectLiqWS() {
       liqEvents.unshift({ s, side, usd, ts: Date.now() })
       if (liqEvents.length > 80) liqEvents.pop()
       updateLiqTicker()
-    } catch {}
+    } catch { }
   }
-  liqWS.onerror = () => {}
+  liqWS.onerror = () => { }
   liqWS.onclose = () => setTimeout(connectLiqWS, 5000)
 }
 
@@ -249,10 +249,10 @@ async function runAnalysis() {
   if (ico) {
     ico.innerHTML = `<i data-lucide="loader" style="width:14px;height:14px;animation:spin .7s linear infinite;"></i>`
     try {
-      ;(window as any).lucide.createIcons({
+      ; (window as any).lucide.createIcons({
         nodes: [ico.querySelector("[data-lucide]")],
       })
-    } catch {}
+    } catch { }
   }
 
   document.getElementById("verdict")!.className = "verdict"
@@ -263,28 +263,28 @@ async function runAnalysis() {
   }
   const scoreFill = document.getElementById("score-fill")
   if (scoreFill) scoreFill.style.width = "0"
-  ;["sb-bull", "sb-neut", "sb-bear"].forEach((id) => {
-    const el = document.getElementById(id)
-    if (el) el.textContent = "—"
-  })
-  ;["pp-price", "pp-change", "pp-vol", "pp-fng"].forEach((id) => {
-    const e = document.getElementById(id)
-    if (e) {
-      e.className = "p-val load"
-      e.textContent = "…"
-    }
-  })
+    ;["sb-bull", "sb-neut", "sb-bear"].forEach((id) => {
+      const el = document.getElementById(id)
+      if (el) el.textContent = "—"
+    })
+    ;["pp-price", "pp-change", "pp-vol", "pp-fng"].forEach((id) => {
+      const e = document.getElementById(id)
+      if (e) {
+        e.className = "p-val load"
+        e.textContent = "…"
+      }
+    })
 
   const checks = document.getElementById("checks")!
   checks.innerHTML = ""
-  ;[
-    "RSI momentum",
-    "Moving averages",
-    "MACD crossover",
-    "Volume",
-    "Liquidation range",
-    "Fear & greed",
-  ].forEach((n, i) => checks.appendChild(makeScanning(n, i * 55)))
+    ;[
+      "RSI momentum",
+      "Moving averages",
+      "MACD crossover",
+      "Volume",
+      "Liquidation range",
+      "Fear & greed",
+    ].forEach((n, i) => checks.appendChild(makeScanning(n, i * 55)))
 
   try {
     const [ticker, k1h, k4h, fng] = await Promise.all([
@@ -511,10 +511,10 @@ async function runAnalysis() {
     await new Promise((r) => setTimeout(r, 300))
 
     try {
-      ;(window as any).lucide.createIcons({
+      ; (window as any).lucide.createIcons({
         nodes: Array.from(document.getElementById("checks")!.querySelectorAll("[data-lucide]")),
       })
-    } catch {}
+    } catch { }
 
     const maxScore = 12
     const pct = Math.round((score / maxScore) * 100)
@@ -590,10 +590,10 @@ async function runAnalysis() {
 
     if (vc) {
       try {
-        ;(window as any).lucide.createIcons({
+        ; (window as any).lucide.createIcons({
           nodes: Array.from(vc.querySelectorAll("[data-lucide]")),
         })
-      } catch {}
+      } catch { }
     }
   } catch (err: any) {
     showErr("API error: " + err.message)
@@ -604,10 +604,10 @@ async function runAnalysis() {
   if (ico2) {
     ico2.innerHTML = `<i data-lucide="refresh-cw" style="width:14px;height:14px;display:inline-flex;"></i>`
     try {
-      ;(window as any).lucide.createIcons({
+      ; (window as any).lucide.createIcons({
         nodes: [ico2.querySelector("[data-lucide]")],
       })
-    } catch {}
+    } catch { }
   }
   scanning = false
 }
@@ -618,10 +618,10 @@ function initStaticIcons() {
     if (!el) return
     el.innerHTML = `<i data-lucide="${name}" style="width:${size}px;height:${size}px;display:inline-flex;"></i>`
     try {
-      ;(window as any).lucide.createIcons({
+      ; (window as any).lucide.createIcons({
         nodes: [el.querySelector("[data-lucide]")],
       })
-    } catch {}
+    } catch { }
   }
 
   renderIcon("brain-wrap", "brain", 20)
@@ -642,8 +642,8 @@ function initStaticIcons() {
   if (scoreLbl) scoreLbl.innerHTML = labelWithIcon("activity", "Bull signal strength")
 
   try {
-    ;(window as any).lucide.createIcons()
-  } catch {}
+    ; (window as any).lucide.createIcons()
+  } catch { }
 }
 
 export default function AITradingBrain() {
@@ -672,25 +672,25 @@ export default function AITradingBrain() {
     <>
       <style>{`
         :root {
-          --bg: #080c10;
-          --bg2: #0d1318;
-          --bg3: #111820;
-          --border: rgba(255,255,255,0.07);
-          --border2: rgba(255,255,255,0.14);
-          --green: #00e8a2;
-          --green-bg: rgba(0,232,162,0.1);
-          --green-border: rgba(0,232,162,0.28);
-          --red: #ff4d6a;
-          --red-bg: rgba(255,77,106,0.1);
-          --red-border: rgba(255,77,106,0.28);
-          --amber: #f5c842;
-          --amber-bg: rgba(245,200,66,0.1);
-          --amber-border: rgba(245,200,66,0.26);
-          --blue: #3d9eff;
-          --blue-bg: rgba(61,158,255,0.1);
-          --text: #e8edf2;
-          --text2: #7a8a99;
-          --text3: #3e4e5c;
+          --bg: var(--background);
+          --bg2: var(--surface);
+          --bg3: var(--surface-elevated);
+          --border: var(--border-color);
+          --border2: var(--border-color);
+          --green: #059669;
+          --green-bg: rgba(5,150,105,0.1);
+          --green-border: rgba(5,150,105,0.28);
+          --red: #dc2626;
+          --red-bg: rgba(220,38,38,0.1);
+          --red-border: rgba(220,38,38,0.28);
+          --amber: #d97706;
+          --amber-bg: rgba(217,119,6,0.1);
+          --amber-border: rgba(217,119,6,0.26);
+          --blue: #2563eb;
+          --blue-bg: rgba(37,99,235,0.1);
+          --text: var(--foreground);
+          --text2: var(--muted);
+          --text3: var(--muted);
           --radius: 10px;
           --radius-sm: 7px;
         }
@@ -716,23 +716,23 @@ export default function AITradingBrain() {
         .ci-green { background:var(--green-bg); color:var(--green); border:1px solid var(--green-border); }
         .ci-red { background:var(--red-bg); color:var(--red); border:1px solid var(--red-border); }
         .ci-amber { background:var(--amber-bg); color:var(--amber); border:1px solid var(--amber-border); }
-        .ci-neutral { background:rgba(255,255,255,.04); color:var(--text3); border:1px solid var(--border); }
+        .ci-neutral { background:rgba(0,0,0,.04); color:var(--text3); border:1px solid var(--border); }
 
         .chk-body { min-width:0; }
         .chk-name { font-size:10px; letter-spacing:.05em; color:var(--text2); margin-bottom:2px; }
-        .chk-detail { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; color:var(--text); }
+        .chk-detail { font-family:var(--font-geist-sans),system-ui,sans-serif; font-size:14px; font-weight:700; color:var(--text); }
         .chk-explain { font-size:11px; color:var(--text2); margin-top:4px; line-height:1.6; }
 
         .chk-tag { font-size:9px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; padding:3px 9px; border-radius:20px; white-space:nowrap; align-self:start; margin-top:3px; }
         .tg-green { background:var(--green-bg); color:var(--green); border:1px solid var(--green-border); }
         .tg-red { background:var(--red-bg); color:var(--red); border:1px solid var(--red-border); }
         .tg-amber { background:var(--amber-bg); color:var(--amber); border:1px solid var(--amber-border); }
-        .tg-neutral { background:rgba(255,255,255,.04); color:var(--text2); border:1px solid var(--border); }
+        .tg-neutral { background:rgba(0,0,0,.04); color:var(--text2); border:1px solid var(--border); }
 
         .p-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:11px 13px; }
         .p-lbl { font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--text3); margin-bottom:5px; display:flex; align-items:center; gap:5px; }
         .p-lbl svg { width:11px; height:11px; }
-        .p-val { font-family:'Syne',sans-serif; font-size:16px; font-weight:700; color:var(--text); }
+        .p-val { font-family:var(--font-geist-sans),system-ui,sans-serif; font-size:16px; font-weight:700; color:var(--text); }
         .p-val.up { color:var(--green); }
         .p-val.dn { color:var(--red); }
         .p-val.load { color:var(--text3); font-size:13px; font-weight:400; }
@@ -756,12 +756,12 @@ export default function AITradingBrain() {
         .score-top { display:flex; align-items:center; justify-content:space-between; }
         .score-lbl { font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--text2); display:flex; align-items:center; gap:6px; }
         .score-lbl svg { width:13px; height:13px; }
-        .score-num { font-family:'Syne',sans-serif; font-size:28px; font-weight:800; color:var(--text3); }
-        .score-track { height:4px; background:rgba(255,255,255,.06); border-radius:2px; overflow:hidden; }
+        .score-num { font-family:var(--font-geist-sans),system-ui,sans-serif; font-size:28px; font-weight:800; color:var(--text3); }
+        .score-track { height:4px; background:rgba(0,0,0,.06); border-radius:2px; overflow:hidden; }
         .score-fill { height:100%; border-radius:2px; width:0; transition:width .9s cubic-bezier(.4,0,.2,1); }
         .score-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
-        .sg-item { background:rgba(255,255,255,.03); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; text-align:center; }
-        .sg-val { font-family:'Syne',sans-serif; font-size:20px; font-weight:800; }
+        .sg-item { background:rgba(0,0,0,.03); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; text-align:center; }
+        .sg-val { font-family:var(--font-geist-sans),system-ui,sans-serif; font-size:20px; font-weight:800; }
         .sg-lbl { font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:var(--text3); }
 
         .verdict { background:var(--bg2); border:1.5px solid var(--border); border-radius:var(--radius); padding:18px 20px; display:grid; grid-template-columns:46px 1fr; align-items:start; gap:16px; opacity:0; transition:opacity .4s; }
@@ -776,17 +776,17 @@ export default function AITradingBrain() {
         .vi-sell { background:var(--red-bg); color:var(--red); border:1px solid var(--red-border); }
         .vi-hold { background:var(--amber-bg); color:var(--amber); border:1px solid var(--amber-border); }
 
-        .v-title { font-family:'Syne',sans-serif; font-size:16px; font-weight:800; letter-spacing:-.01em; }
+        .v-title { font-family:var(--font-geist-sans),system-ui,sans-serif; font-size:16px; font-weight:800; letter-spacing:-.01em; }
         .v-buy .v-title { color:var(--green); }
         .v-sell .v-title { color:var(--red); }
         .v-hold .v-title { color:var(--amber); }
         .v-sub { font-size:12px; color:var(--text2); line-height:1.65; }
         .v-actions { display:flex; gap:7px; flex-wrap:wrap; }
-        .v-act { display:flex; align-items:center; gap:6px; font-size:11px; padding:6px 12px; border-radius:var(--radius-sm); border:1px solid var(--border2); background:rgba(255,255,255,.04); color:var(--text2); cursor:pointer; font-family:'Space Mono',monospace; transition:all .15s; text-decoration:none; }
-        .v-act:hover { border-color:rgba(255,255,255,.25); color:var(--text); }
+        .v-act { display:flex; align-items:center; gap:6px; font-size:11px; padding:6px 12px; border-radius:var(--radius-sm); border:1px solid var(--border2); background:rgba(0,0,0,.03); color:var(--text2); cursor:pointer; font-family:var(--font-geist-mono),monospace; transition:all .15s; text-decoration:none; }
+        .v-act:hover { border-color:rgba(0,0,0,.25); color:var(--text); }
         .v-act svg { width:12px; height:12px; }
 
-        .rescan-btn { display:flex; align-items:center; gap:8px; padding:11px 26px; border-radius:var(--radius-sm); border:1px solid var(--border2); background:transparent; color:var(--text2); font-family:'Space Mono',monospace; font-size:12px; font-weight:700; letter-spacing:.07em; cursor:pointer; transition:all .2s; }
+        .rescan-btn { display:flex; align-items:center; gap:8px; padding:11px 26px; border-radius:var(--radius-sm); border:1px solid var(--border2); background:transparent; color:var(--text2); font-family:var(--font-geist-mono),monospace; font-size:12px; font-weight:700; letter-spacing:.07em; cursor:pointer; transition:all .2s; }
         .rescan-btn:hover { border-color:var(--green-border); color:var(--green); }
         .rescan-btn:disabled { opacity:.4; cursor:not-allowed; }
         .rescan-btn svg { width:14px; height:14px; }
@@ -817,13 +817,13 @@ export default function AITradingBrain() {
         }
       `}</style>
 
-      <div className="bg-[#080c10] text-[#e8edf2] font-['Space_Mono',monospace] min-h-screen antialiased">
-        <div className="max-w-[820px] mx-auto px-5 pt-6 sm:pt-9 pb-16 sm:pb-20">
+      <div className="bg-primary/10d text-foreground font-mono antialiased">
+        <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-7 gap-3 flex-wrap">
             <div className="flex items-center gap-3">
               <div className="w-[42px] h-[42px] rounded-[7px] border border-[var(--green-border)] bg-[var(--green-bg)] flex items-center justify-center text-[var(--green)] brain-pulse" id="brain-wrap" />
               <div>
-                <h1 className="font-['Syne',sans-serif] text-[16px] sm:text-[19px] font-extrabold tracking-tight">AI Trading Brain</h1>
+                <h1 className="font-sans text-[16px] sm:text-[19px] font-extrabold tracking-tight">AI Trading Brain</h1>
                 <p className="text-[10px] text-[var(--text3)] tracking-[.1em] uppercase mt-px">Live strategy checklist · Real-time signals</p>
               </div>
             </div>
@@ -835,30 +835,29 @@ export default function AITradingBrain() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 mb-5">
+          <div className="text-center sm:text-left pb-4 space-y-2 sm:space-y-0 sm:space-x-2">
             <button
-              className="flex items-center justify-center gap-2 px-[10px] py-[11px] rounded-[7px] border border-[var(--border)] bg-[var(--bg2)] cursor-pointer font-['Space_Mono',monospace] text-xs font-bold tracking-[.05em] text-[var(--text2)] hover:border-[var(--border2)] hover:text-[var(--text)] transition-all duration-[.18s] t-btn active"
+              className="inline-block px-3 py-2.5 rounded-md border border-blue-500 bg-blue-50 font-mono text-xs font-bold tracking-wider text-blue-700 hover:border-blue-600 hover:text-blue-800 transition-all duration-150 cursor-pointer active:scale-95 w-full sm:w-auto"
               id="btn-BTC"
               onClick={() => selectTicker("BTCUSDT", "BTC")}
             >
               <span id="ic-BTC" /> BTC/USDT
             </button>
             <button
-              className="flex items-center justify-center gap-2 px-[10px] py-[11px] rounded-[7px] border border-[var(--border)] bg-[var(--bg2)] cursor-pointer font-['Space_Mono',monospace] text-xs font-bold tracking-[.05em] text-[var(--text2)] hover:border-[var(--border2)] hover:text-[var(--text)] transition-all duration-[.18s] t-btn"
+              className="inline-block px-3 py-2.5 rounded-md border border-gray-200 bg-white font-mono text-xs font-bold tracking-wider text-gray-600 hover:border-gray-300 hover:text-gray-900 transition-all duration-150 cursor-pointer active:scale-95 w-full sm:w-auto"
               id="btn-ETH"
               onClick={() => selectTicker("ETHUSDT", "ETH")}
             >
               <span id="ic-ETH" /> ETH/USDT
             </button>
             <button
-              className="flex items-center justify-center gap-2 px-[10px] py-[11px] rounded-[7px] border border-[var(--border)] bg-[var(--bg2)] cursor-pointer font-['Space_Mono',monospace] text-xs font-bold tracking-[.05em] text-[var(--text2)] hover:border-[var(--border2)] hover:text-[var(--text)] transition-all duration-[.18s] t-btn"
+              className="inline-block px-3 py-2.5 rounded-md border border-gray-200 bg-white font-mono text-xs font-bold tracking-wider text-gray-600 hover:border-gray-300 hover:text-gray-900 transition-all duration-150 cursor-pointer active:scale-95 w-full sm:w-auto"
               id="btn-SOL"
               onClick={() => selectTicker("SOLUSDT", "SOL")}
             >
               <span id="ic-SOL" /> SOL/USDT
             </button>
           </div>
-
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
             <div className="p-card">
               <div className="p-lbl" id="lbl-price" />
@@ -878,23 +877,12 @@ export default function AITradingBrain() {
             </div>
           </div>
 
-          <div className="liq-bar">
-            <div className="liq-inner marquee" id="liq-inner">
-              <span className="liq-item"><span className="liq-sym">BTC</span><span className="liq-long">Connecting to liquidation stream...</span></span>
-              <span className="liq-item"><span className="liq-sym">ETH</span><span className="liq-short">Waiting for Binance WebSocket...</span></span>
-              <span className="liq-item"><span className="liq-sym">SOL</span><span className="liq-long">Standby...</span></span>
-              <span className="liq-item"><span className="liq-sym">BTC</span><span className="liq-long">Connecting to liquidation stream...</span></span>
-              <span className="liq-item"><span className="liq-sym">ETH</span><span className="liq-short">Waiting for Binance WebSocket...</span></span>
-              <span className="liq-item"><span className="liq-sym">SOL</span><span className="liq-long">Standby...</span></span>
-            </div>
-          </div>
-
           <div className="err-box" id="err-box" />
 
           <div className="sec-label mb-3">Signal analysis</div>
           <div className="checks" id="checks" />
 
-          <div className="score-wrap flex flex-col gap-3 mb-[14px]">
+          <div className="score-wrap flex flex-col gap-3 mt-5 mb-[14px]">
             <div className="score-top">
               <span className="score-lbl" id="score-lbl-el" />
               <span className="score-num" id="score-num">—</span>
@@ -917,7 +905,7 @@ export default function AITradingBrain() {
           </div>
 
           <div className="verdict" id="verdict">
-            <div className="v-icon" id="v-icon" />
+            <div className="v-icon mt-10" id="v-icon" />
             <div>
               <div className="v-title" id="v-title">Analyzing market…</div>
               <div className="v-sub" id="v-sub">Fetching live data from Binance &amp; Alternative.me</div>
@@ -925,13 +913,13 @@ export default function AITradingBrain() {
             </div>
           </div>
 
-          <div className="flex justify-center gap-[10px] flex-wrap">
+          <div className="flex justify-center gap-[10px] flex-wrap my-7">
             <button className="rescan-btn" id="rescan-btn" onClick={runAnalysis}>
               <span id="rescan-ico" /> Rescan market
             </button>
           </div>
 
-          <div className="mt-9 text-center text-[10px] text-[var(--text3)] tracking-[.06em]">
+          <div className="text-center text-[10px] text-[var(--text3)] tracking-[.06em]">
             Data: <a href="https://binance.com" target="_blank" rel="noopener noreferrer" className="text-[var(--text3)] no-underline hover:text-[var(--text2)]">Binance</a> &nbsp;·&nbsp;
             <a href="https://alternative.me/crypto/fear-and-greed-index/" target="_blank" rel="noopener noreferrer" className="text-[var(--text3)] no-underline hover:text-[var(--text2)]">Alternative.me</a>
             &nbsp;·&nbsp; Not financial advice. Do your own research.

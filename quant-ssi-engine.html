@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quant SSI Engine — Signal Strength Index</title>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c10;
+    --bg2: #0d1318;
+    --bg3: #111820;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --green: #00e8a2;
+    --green-bg: rgba(0,232,162,0.1);
+    --green-border: rgba(0,232,162,0.28);
+    --red: #ff4d6a;
+    --red-bg: rgba(255,77,106,0.1);
+    --red-border: rgba(255,77,106,0.28);
+    --amber: #f5c842;
+    --amber-bg: rgba(245,200,66,0.1);
+    --amber-border: rgba(245,200,66,0.26);
+    --blue: #3d9eff;
+    --blue-bg: rgba(61,158,255,0.1);
+    --blue-border: rgba(61,158,255,0.28);
+    --text: #e8edf2;
+    --text2: #7a8a99;
+    --text3: #3e4e5c;
+    --mono: 'Space Mono', monospace;
+    --display: 'Syne', sans-serif;
+    --r: 10px;
+    --r-sm: 7px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.025) 2px, rgba(0,0,0,0.025) 4px);
+    pointer-events: none; z-index: 9999;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 36px 20px 80px; }
+
+  /* Header */
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; flex-wrap: wrap; gap: 12px; }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo-box {
+    width: 44px; height: 44px; border-radius: var(--r-sm);
+    border: 1px solid var(--blue-border); background: var(--blue-bg);
+    display: flex; align-items: center; justify-content: center; color: var(--blue);
+    animation: logoPulse 3s ease-in-out infinite;
+  }
+  @keyframes logoPulse { 0%,100%{box-shadow:0 0 0 0 rgba(61,158,255,0)} 50%{box-shadow:0 0 0 6px rgba(61,158,255,0.08)} }
+  .logo-box svg { width: 22px; height: 22px; }
+  .brand h1 { font-family: var(--display); font-size: 20px; font-weight: 800; letter-spacing: -.02em; }
+  .brand p { font-size: 10px; color: var(--text3); letter-spacing: .12em; text-transform: uppercase; margin-top: 2px; }
+  .badge {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--blue); background: var(--blue-bg); border: 1px solid var(--blue-border);
+    border-radius: 20px; padding: 4px 12px;
+  }
+  .badge svg { width: 12px; height: 12px; }
+
+  /* Section label */
+  .slabel {
+    font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: var(--text3);
+    margin-bottom: 12px; display: flex; align-items: center; gap: 10px;
+  }
+  .slabel::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .slabel svg { width: 13px; height: 13px; }
+
+  /* Pair selector */
+  .pair-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 24px; }
+  .pair-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 11px 10px; border-radius: var(--r-sm);
+    border: 1px solid var(--border); background: var(--bg2);
+    cursor: pointer; font-family: var(--mono); font-size: 12px; font-weight: 700;
+    letter-spacing: .05em; color: var(--text2); transition: all .18s;
+  }
+  .pair-btn:hover { border-color: var(--border2); color: var(--text); }
+  .pair-btn.active { background: var(--green-bg); border-color: var(--green-border); color: var(--green); }
+  .pair-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+  /* Form */
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(185px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 10px; color: var(--text2); letter-spacing: .06em; text-transform: uppercase; }
+  .field input, .field select {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--r-sm); padding: 0 12px; height: 38px;
+    color: var(--text); font-family: var(--mono); font-size: 13px;
+    transition: border-color .15s; outline: none; width: 100%;
+  }
+  .field input:focus, .field select:focus { border-color: var(--blue-border); }
+  .field select option { background: #0d1318; }
+  .field .hint { font-size: 10px; color: var(--text3); }
+
+  /* Analyze button */
+  .analyze-btn {
+    width: 100%; height: 44px; border-radius: var(--r-sm);
+    border: 1px solid var(--border2); background: transparent;
+    color: var(--text2); font-family: var(--mono); font-size: 13px; font-weight: 700;
+    letter-spacing: .07em; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 9px;
+    transition: all .2s; margin-bottom: 28px; margin-top: 6px;
+  }
+  .analyze-btn:hover { border-color: var(--green-border); color: var(--green); box-shadow: 0 0 18px rgba(0,232,162,0.08); }
+  .analyze-btn svg { width: 16px; height: 16px; }
+
+  /* Results */
+  .results { display: none; }
+  .results.show { display: block; }
+
+  .penalty-banner {
+    display: none; align-items: center; gap: 9px;
+    background: var(--red-bg); border: 1px solid var(--red-border);
+    border-radius: var(--r-sm); padding: 10px 14px;
+    font-size: 11px; color: var(--red); margin-bottom: 14px; line-height: 1.5;
+  }
+  .penalty-banner svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+  /* Alpha card */
+  .alpha-card {
+    border-radius: var(--r); padding: 20px 22px; margin-bottom: 12px;
+    border: 1.5px solid;
+  }
+  .alpha-long { background: var(--green-bg); border-color: var(--green-border); }
+  .alpha-short { background: var(--red-bg); border-color: var(--red-border); }
+  .alpha-wait { background: var(--amber-bg); border-color: var(--amber-border); }
+
+  .alpha-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+  .dir-wrap { display: flex; align-items: center; gap: 12px; }
+  .dir-icon {
+    width: 44px; height: 44px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .dir-icon svg { width: 20px; height: 20px; }
+  .di-long { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .di-short { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+  .di-wait { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+  .dir-text { }
+  .dir-main { font-family: var(--display); font-size: 22px; font-weight: 800; letter-spacing: -.01em; }
+  .alpha-long .dir-main { color: var(--green); }
+  .alpha-short .dir-main { color: var(--red); }
+  .alpha-wait .dir-main { color: var(--amber); }
+  .dir-sub { font-size: 10px; color: var(--text2); margin-top: 1px; letter-spacing: .06em; text-transform: uppercase; }
+
+  .ssi-block { text-align: right; }
+  .ssi-num { font-family: var(--display); font-size: 44px; font-weight: 800; line-height: 1; }
+  .alpha-long .ssi-num { color: var(--green); }
+  .alpha-short .ssi-num { color: var(--red); }
+  .alpha-wait .ssi-num { color: var(--amber); }
+  .ssi-label { font-size: 10px; color: var(--text2); margin-top: 2px; letter-spacing: .06em; text-transform: uppercase; }
+
+  .ssi-track { height: 5px; background: rgba(255,255,255,0.07); border-radius: 3px; overflow: hidden; }
+  .ssi-fill { height: 100%; border-radius: 3px; width: 0; transition: width 1s cubic-bezier(.4,0,.2,1); }
+  .sf-long { background: var(--green); }
+  .sf-short { background: var(--red); }
+  .sf-wait { background: var(--amber); }
+
+  /* Weight grid */
+  .weight-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+  @media(max-width:580px){ .weight-grid { grid-template-columns: repeat(2,1fr); } }
+  .wg-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 11px 13px; }
+  .wg-label { font-size: 9px; color: var(--text3); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 5px; }
+  .wg-val { font-family: var(--display); font-size: 17px; font-weight: 800; }
+  .wg-track { height: 3px; background: rgba(255,255,255,0.05); border-radius: 2px; margin-top: 7px; overflow: hidden; }
+  .wg-fill { height: 100%; border-radius: 2px; }
+
+  /* Confluence */
+  .conf-card, .exec-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--r); padding: 16px 18px; margin-bottom: 12px;
+  }
+  .card-title {
+    font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--text3);
+    margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .card-title svg { width: 13px; height: 13px; }
+
+  .conf-item { display: flex; align-items: flex-start; gap: 11px; padding: 10px 0; border-top: 1px solid var(--border); font-size: 12px; line-height: 1.65; }
+  .conf-item:first-of-type { border-top: none; padding-top: 0; }
+  .cdot { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .cdot svg { width: 11px; height: 11px; }
+  .cdot-bull { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .cdot-bear { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+  .cdot-neut { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+  .conf-label { font-weight: 700; color: var(--text); margin-bottom: 2px; font-size: 11px; letter-spacing: .03em; }
+  .conf-body { color: var(--text2); }
+
+  /* Execution */
+  .exec-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--border); gap: 12px; flex-wrap: wrap; }
+  .exec-row:first-of-type { border-top: none; padding-top: 0; }
+  .exec-lbl { font-size: 10px; color: var(--text3); letter-spacing: .06em; text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
+  .exec-lbl svg { width: 13px; height: 13px; }
+  .exec-val { font-family: var(--display); font-size: 14px; font-weight: 700; text-align: right; }
+  .ev-entry { color: var(--amber); }
+  .ev-sl { color: var(--red); }
+  .ev-tp { color: var(--green); }
+  .ev-size { color: var(--text2); }
+  .ev-rr { color: var(--blue); }
+  .tp-row { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .tp-pill {
+    font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 20px;
+    background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border);
+    letter-spacing: .04em;
+  }
+
+  /* Risk warning */
+  .risk-card { border-radius: var(--r-sm); padding: 13px 16px; display: flex; align-items: flex-start; gap: 10px; font-size: 12px; line-height: 1.65; margin-bottom: 20px; }
+  .risk-card svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
+  .risk-high { background: var(--red-bg); border: 1px solid var(--red-border); color: var(--red); }
+  .risk-med { background: var(--amber-bg); border: 1px solid var(--amber-border); color: var(--amber); }
+  .risk-low { background: var(--green-bg); border: 1px solid var(--green-border); color: var(--green); }
+
+  /* Footer actions */
+  .actions-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .act-btn {
+    display: flex; align-items: center; gap: 7px;
+    padding: 10px 18px; border-radius: var(--r-sm);
+    border: 1px solid var(--border2); background: transparent;
+    color: var(--text2); font-family: var(--mono); font-size: 11px; font-weight: 700;
+    letter-spacing: .06em; cursor: pointer; transition: all .18s;
+    text-decoration: none;
+  }
+  .act-btn:hover { border-color: rgba(255,255,255,.22); color: var(--text); }
+  .act-btn svg { width: 13px; height: 13px; }
+
+  .divider { height: 1px; background: var(--border); margin: 24px 0; }
+
+  /* Tooltip hint boxes */
+  .philosophy-box {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--r-sm); padding: 12px 14px; margin-bottom: 20px;
+  }
+  .phil-title { font-size: 10px; color: var(--blue); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .phil-title svg { width: 12px; height: 12px; }
+  .phil-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; }
+  .phil-item { font-size: 10px; color: var(--text3); display: flex; align-items: flex-start; gap: 6px; line-height: 1.55; }
+  .phil-item svg { width: 11px; height: 11px; margin-top: 1px; flex-shrink: 0; color: var(--text3); }
+
+  .footer { margin-top: 40px; text-align: center; font-size: 10px; color: var(--text3); letter-spacing: .06em; }
+  .footer a { color: var(--text3); text-decoration: none; }
+  .footer a:hover { color: var(--text2); }
+
+  @media(max-width:500px){
+    .alpha-top { flex-direction: column; }
+    .ssi-block { text-align: left; }
+    .wrap { padding: 20px 14px 60px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo-box" id="logo-box"></div>
+      <div class="brand">
+        <h1>Quant SSI Engine</h1>
+        <p>Signal strength index · Noise-filtered setups</p>
+      </div>
+    </div>
+    <div class="badge" id="badge-el"></div>
+  </div>
+
+  <!-- Philosophy box -->
+  <div class="philosophy-box">
+    <div class="phil-title" id="phil-title"></div>
+    <div class="phil-grid" id="phil-grid"></div>
+  </div>
+
+  <!-- Pair selector -->
+  <div class="slabel" id="sl-asset"></div>
+  <div class="pair-row">
+    <button class="pair-btn active" id="pb-BTC" onclick="setPair('BTC/USDT','BTC')">
+      <span id="pi-BTC"></span> BTC/USDT
+    </button>
+    <button class="pair-btn" id="pb-ETH" onclick="setPair('ETH/USDT','ETH')">
+      <span id="pi-ETH"></span> ETH/USDT
+    </button>
+    <button class="pair-btn" id="pb-SOL" onclick="setPair('SOL/USDT','SOL')">
+      <span id="pi-SOL"></span> SOL/USDT
+    </button>
+  </div>
+
+  <!-- Form -->
+  <div class="slabel" id="sl-input"></div>
+  <div class="form-grid">
+    <div class="field">
+      <label>Current price (USDT)</label>
+      <input type="number" id="f-price" placeholder="e.g. 67450" step="0.01">
+    </div>
+    <div class="field">
+      <label>24h range position (%)</label>
+      <input type="number" id="f-range" placeholder="0–100" min="0" max="100" step="1">
+      <span class="hint">0 = at 24h low · 100 = at 24h high</span>
+    </div>
+    <div class="field">
+      <label>RSI (14)</label>
+      <input type="number" id="f-rsi" placeholder="e.g. 54.2" min="0" max="100" step="0.1">
+    </div>
+    <div class="field">
+      <label>MACD histogram value</label>
+      <input type="number" id="f-macd" placeholder="e.g. 0.0042 or -0.003" step="0.0001">
+      <span class="hint">Positive = bullish · negative = bearish</span>
+    </div>
+    <div class="field">
+      <label>MA50 vs MA200 structure</label>
+      <select id="f-ma">
+        <option value="">Select crossover state...</option>
+        <option value="gc_strong">Golden cross confirmed (MA50 &gt; 3% above MA200)</option>
+        <option value="gc_early">Golden cross early (MA50 0–3% above MA200)</option>
+        <option value="converging">Converging (within 1.5% gap)</option>
+        <option value="dc_early">Death cross early (MA50 0–3% below MA200)</option>
+        <option value="dc_strong">Death cross confirmed (MA50 &gt; 3% below MA200)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Volume vs average (×)</label>
+      <input type="number" id="f-vol" placeholder="e.g. 1.42" min="0" step="0.01">
+      <span class="hint">⚠ Below 1.1× triggers 50% SSI penalty</span>
+    </div>
+    <div class="field">
+      <label>Fear & greed index (0–100)</label>
+      <input type="number" id="f-fng" placeholder="e.g. 38" min="0" max="100" step="1">
+    </div>
+    <div class="field">
+      <label>Order book / liq structure</label>
+      <select id="f-liq">
+        <option value="">Select market structure...</option>
+        <option value="swept_reversed">Liquidity swept &amp; price reversed (ideal)</option>
+        <option value="above_midpoint">Price above midpoint — pools below as floor</option>
+        <option value="mid_range">Mid-range — pools exist on both sides</option>
+        <option value="into_pools">Long directly into overhead liq pools (trap)</option>
+        <option value="near_low_pools">Near lows — heavy overhead pools intact</option>
+      </select>
+    </div>
+  </div>
+
+  <button class="analyze-btn" id="analyze-btn" onclick="analyze()">
+    <span id="analyze-ico"></span> <span id="analyze-txt">Calculate SSI &amp; generate analysis</span>
+  </button>
+
+  <!-- Results -->
+  <div class="results" id="results">
+
+    <div class="slabel" id="sl-alpha"></div>
+
+    <div class="penalty-banner" id="penalty-banner">
+      <span id="penalty-ico"></span>
+      <span>Volume below 1.1× average — 50% fake-out penalty applied automatically. All signals below should be treated as unreliable until volume confirms.</span>
+    </div>
+
+    <!-- Alpha metric -->
+    <div class="alpha-card" id="alpha-card">
+      <div class="alpha-top">
+        <div class="dir-wrap">
+          <div class="dir-icon" id="dir-icon"></div>
+          <div class="dir-text">
+            <div class="dir-main" id="dir-main">—</div>
+            <div class="dir-sub" id="dir-sub">—</div>
+          </div>
+        </div>
+        <div class="ssi-block">
+          <div class="ssi-num" id="ssi-num">—</div>
+          <div class="ssi-label">signal strength index</div>
+        </div>
+      </div>
+      <div class="ssi-track"><div class="ssi-fill" id="ssi-fill"></div></div>
+    </div>
+
+    <!-- Weight breakdown -->
+    <div class="weight-grid" id="weight-grid"></div>
+
+    <!-- Confluence breakdown -->
+    <div class="conf-card">
+      <div class="card-title" id="ct-confluence"></div>
+      <div id="confluence-list"></div>
+    </div>
+
+    <!-- Execution rules -->
+    <div class="exec-card" id="exec-card">
+      <div class="card-title" id="ct-exec"></div>
+      <div id="exec-body"></div>
+    </div>
+
+    <!-- Risk warning -->
+    <div class="risk-card" id="risk-card">
+      <span id="risk-ico"></span>
+      <span id="risk-text">—</span>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="actions-row" id="actions-row"></div>
+
+  </div>
+
+  <div class="footer">
+    Quant SSI Engine · Built for noise-filtered high-probability setups · Not financial advice.
+    Always verify signals independently before trading.
+  </div>
+
+</div>
+
+<script>
+let pair = 'BTC/USDT', base = 'BTC';
+
+// ── Icon helper ────────────────────────────────────────────────────────────
+function mkIco(name, size = 16) {
+  const el = document.createElement('i');
+  el.setAttribute('data-lucide', name);
+  el.style.cssText = `width:${size}px;height:${size}px;display:inline-flex;vertical-align:middle;`;
+  return el;
+}
+function inj(id, name, size = 16) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = '';
+  const ico = mkIco(name, size);
+  el.appendChild(ico);
+  lucide.createIcons({ nodes: [ico] });
+}
+function icoHTML(name, size = 14) {
+  return `<i data-lucide="${name}" style="width:${size}px;height:${size}px;display:inline-flex;vertical-align:middle;flex-shrink:0;"></i>`;
+}
+function reIcons(root) {
+  lucide.createIcons({ nodes: Array.from((root || document).querySelectorAll('[data-lucide]')) });
+}
+
+function setPair(p, b) {
+  pair = p; base = b;
+  ['BTC','ETH','SOL'].forEach(x => document.getElementById('pb-'+x).classList.remove('active'));
+  document.getElementById('pb-'+b).classList.add('active');
+}
+
+function fmt(n, d = 2) { return Number(n).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }); }
+
+function analyze() {
+  const price = parseFloat(document.getElementById('f-price').value);
+  const range = parseFloat(document.getElementById('f-range').value);
+  const rsi   = parseFloat(document.getElementById('f-rsi').value);
+  const macdH = parseFloat(document.getElementById('f-macd').value);
+  const ma    = document.getElementById('f-ma').value;
+  const vol   = parseFloat(document.getElementById('f-vol').value);
+  const fng   = parseFloat(document.getElementById('f-fng').value);
+  const liq   = document.getElementById('f-liq').value;
+
+  if ([price, range, rsi, macdH, vol, fng].some(isNaN) || !ma || !liq) {
+    alert('Please fill in all fields before calculating.');
+    return;
+  }
+
+  const volPenalty = vol < 1.1;
+
+  // ── Volume scoring (30%) ───────────────────────────────────────────────
+  let volScore = 0, volNote = '', volDir = 'neut';
+  if (vol >= 2.0) {
+    volScore = 30; volDir = 'bull';
+    volNote = `Exceptional volume at ${vol.toFixed(2)}× average. Move is backed by strong institutional participation. Maximum weight awarded — price action is highly trustworthy.`;
+  } else if (vol >= 1.2) {
+    volScore = 30; volDir = 'bull';
+    volNote = `Volume at ${vol.toFixed(2)}× average clears the confirmation threshold. Full weight awarded. Price movement has real conviction behind it.`;
+  } else if (vol >= 1.05) {
+    volScore = 16; volDir = 'neut';
+    volNote = `Volume marginally above average at ${vol.toFixed(2)}×. Move lacks strong conviction — partial credit only. Treat other signals with more caution than normal.`;
+  } else {
+    volScore = 0; volDir = 'bear';
+    volNote = `Sub-par volume at ${vol.toFixed(2)}× average triggers the 50% fake-out filter. Any bullish signals below are suspect. Wait for volume expansion before committing capital.`;
+  }
+
+  // ── Market structure (25%) ─────────────────────────────────────────────
+  let liqScore = 0, liqNote = '', liqDir = 'neut';
+  if (liq === 'swept_reversed') {
+    liqScore = 25; liqDir = 'bull';
+    liqNote = 'Liquidity sweep + reversal is the cleanest structural setup in crypto. Smart money swept stops below/above, absorbed the liquidity, then reversed. This is the ideal entry condition — you are now aligned with institutional direction.';
+  } else if (liq === 'above_midpoint') {
+    liqScore = 18; liqDir = 'bull';
+    liqNote = `Price above the 24h midpoint with liquidation pools below acting as support. Structural floor is present. Partial credit — pools above may still create short-term resistance.`;
+  } else if (liq === 'mid_range') {
+    liqScore = 10; liqDir = 'neut';
+    liqNote = 'Price at mid-range with pools on both sides. No directional structural edge. Price could sweep either direction before trending. Neutral credit.';
+  } else if (liq === 'into_pools') {
+    liqScore = 0; liqDir = 'bear';
+    liqNote = 'Entering long directly into overhead liquidation pools is the #1 institutional trap. Smart money uses these stacked orders to exit their longs into your buy. Zero structural credit — this setup has negative expectancy.';
+  } else if (liq === 'near_low_pools') {
+    liqScore = 4; liqDir = 'bear';
+    liqNote = 'Price near lows with heavy overhead pools largely intact. Resistance above is stacked. Minimal credit — risk/reward is unfavorable for a long entry here.';
+  }
+
+  // ── Trend & Momentum (25%) ─────────────────────────────────────────────
+  let maScore = 0, macdScore = 0;
+  let maNotes = [], macdNotes = [], trendDir = 'neut';
+
+  if (ma === 'gc_strong') {
+    maScore = 14;
+    maNotes.push({ label: 'MA crossover', body: 'Strong golden cross: MA50 is well above MA200 — confirmed uptrend structure. Institutional trend-followers are already positioned long. Maximum MA credit.' });
+  } else if (ma === 'gc_early') {
+    maScore = 10;
+    maNotes.push({ label: 'MA crossover', body: 'Early golden cross forming. Trend is turning bullish but the crossover is fresh — fake-outs are possible. Volume confirmation here is especially critical.' });
+  } else if (ma === 'converging') {
+    maScore = 6;
+    maNotes.push({ label: 'MA crossover', body: 'MAs are converging — a crossover in either direction is imminent. Trend is undecided. Partial credit; watch the next 12–24 candles closely for resolution.' });
+  } else if (ma === 'dc_early') {
+    maScore = 2;
+    maNotes.push({ label: 'MA crossover', body: 'Early death cross: MA50 crossing below MA200 — bearish trend structure is forming. Longs are fighting against the developing trend. Minimal credit.' });
+  } else if (ma === 'dc_strong') {
+    maScore = 0;
+    maNotes.push({ label: 'MA crossover', body: 'Confirmed death cross: MA50 significantly below MA200. Entering a long against a confirmed death cross is a high-risk counter-trend trade. Zero trend credit.' });
+  }
+
+  if (macdH > 0.001) {
+    macdScore = 11;
+    macdNotes.push({ label: 'MACD histogram', body: `Histogram positive and meaningful at ${macdH.toFixed(5)}. Bullish momentum is confirmed and building. This is the strongest MACD configuration — direction and velocity are both bullish.` });
+  } else if (macdH > 0) {
+    macdScore = 7;
+    macdNotes.push({ label: 'MACD histogram', body: `MACD histogram slightly positive (${macdH.toFixed(5)}). Weak bullish momentum — the line just crossed above signal. Confirmation candles needed before full conviction.` });
+  } else if (macdH > -0.001) {
+    macdScore = 4;
+    macdNotes.push({ label: 'MACD histogram', body: `MACD near zero (${macdH.toFixed(5)}). Momentum is flat — market is coiling. Not a clean signal in either direction. Wait for expansion.` });
+  } else {
+    macdScore = 0;
+    macdNotes.push({ label: 'MACD histogram', body: `MACD histogram negative at ${macdH.toFixed(5)}. Downward momentum is dominant. Bullish MACD invalidated — this is a caution signal against new longs.` });
+  }
+
+  const trendScore = maScore + macdScore;
+  trendDir = trendScore >= 18 ? 'bull' : trendScore >= 10 ? 'neut' : 'bear';
+
+  // ── Sentiment & RSI (20%) ──────────────────────────────────────────────
+  let rsiScore = 0, fngScore = 0, sentDir = 'neut';
+  const rsiLabel = rsi < 30 ? 'Oversold — strong contrarian buy' : rsi < 45 ? 'Healthy — ideal entry zone' : rsi <= 60 ? 'Neutral — no extreme reading' : rsi <= 70 ? 'Elevated — approaching overbought' : 'Overbought — avoid new longs';
+  const fngLabel = fng <= 20 ? 'Extreme fear — contrarian buy signal' : fng <= 40 ? 'Fear — slight contrarian edge' : fng <= 60 ? 'Neutral — balanced sentiment' : fng <= 75 ? 'Greed — elevated reversal risk' : 'Extreme greed — contrarian sell signal';
+
+  if (rsi < 30) rsiScore = 10;
+  else if (rsi < 45) rsiScore = 8;
+  else if (rsi <= 60) rsiScore = 5;
+  else if (rsi <= 70) rsiScore = 2;
+  else rsiScore = 0;
+
+  if (fng <= 20) fngScore = 10;
+  else if (fng <= 40) fngScore = 7;
+  else if (fng <= 60) fngScore = 5;
+  else if (fng <= 75) fngScore = 2;
+  else fngScore = 0;
+
+  const sentScore = rsiScore + fngScore;
+  sentDir = sentScore >= 14 ? 'bull' : sentScore >= 8 ? 'neut' : 'bear';
+
+  const sentItems = [
+    { label: `RSI ${rsi.toFixed(1)}`, body: `${rsiLabel}. Score: ${rsiScore}/10 for sentiment component.` },
+    { label: `Fear & Greed ${fng}`, body: `${fngLabel}. Score: ${fngScore}/10 for sentiment component.` },
+  ];
+
+  // ── Final SSI ──────────────────────────────────────────────────────────
+  const rawTotal = volScore + liqScore + trendScore + sentScore;
+  const finalSSI = volPenalty ? Math.round(rawTotal * 0.5) : rawTotal;
+
+  let direction, dirIcoName, dirClass, diClass, fillClass;
+  const bearishTrend = ma === 'dc_strong' || ma === 'dc_early';
+  const bearishMomentum = macdH < -0.001 && liqScore <= 4;
+
+  if (finalSSI >= 65) {
+    direction = 'LONG'; dirIcoName = 'trending-up';
+    dirClass = 'alpha-long'; diClass = 'di-long'; fillClass = 'sf-long';
+  } else if (finalSSI <= 28 && (bearishTrend || bearishMomentum)) {
+    direction = 'SHORT BIAS'; dirIcoName = 'trending-down';
+    dirClass = 'alpha-short'; diClass = 'di-short'; fillClass = 'sf-short';
+  } else {
+    direction = 'WAIT'; dirIcoName = 'pause';
+    dirClass = 'alpha-wait'; diClass = 'di-wait'; fillClass = 'sf-wait';
+  }
+
+  const dirSubText = {
+    'LONG': `${finalSSI}% SSI · High-probability setup`,
+    'SHORT BIAS': `${finalSSI}% SSI · Bearish structure`,
+    'WAIT': `${finalSSI}% SSI · Insufficient confluence`
+  }[direction];
+
+  // ── Render ─────────────────────────────────────────────────────────────
+  document.getElementById('penalty-banner').style.display = volPenalty ? 'flex' : 'none';
+  inj('penalty-ico', 'alert-triangle', 15);
+
+  const ac = document.getElementById('alpha-card');
+  ac.className = 'alpha-card ' + dirClass;
+
+  const di = document.getElementById('dir-icon');
+  di.className = 'dir-icon ' + diClass;
+  di.innerHTML = icoHTML(dirIcoName, 20);
+
+  document.getElementById('dir-main').textContent = direction;
+  document.getElementById('dir-sub').textContent = dirSubText;
+  document.getElementById('ssi-num').textContent = finalSSI + '%';
+
+  setTimeout(() => {
+    const fill = document.getElementById('ssi-fill');
+    fill.className = 'ssi-fill ' + fillClass;
+    fill.style.width = Math.min(finalSSI, 100) + '%';
+  }, 120);
+
+  // Weight grid
+  const colorMap = { bull: 'var(--green)', bear: 'var(--red)', neut: 'var(--amber)' };
+  const wgData = [
+    { label: 'Volume (30%)', score: volScore, max: 30, dir: volDir },
+    { label: 'Market structure (25%)', score: liqScore, max: 25, dir: liqDir },
+    { label: 'Trend & momentum (25%)', score: trendScore, max: 25, dir: trendDir },
+    { label: 'Sentiment & RSI (20%)', score: sentScore, max: 20, dir: sentDir },
+  ];
+  document.getElementById('weight-grid').innerHTML = wgData.map(w => `
+    <div class="wg-card">
+      <div class="wg-label">${w.label}</div>
+      <div class="wg-val" style="color:${colorMap[w.dir]}">${w.score}<span style="font-size:11px;color:var(--text3)">/${w.max}</span></div>
+      <div class="wg-track">
+        <div class="wg-fill" style="width:${Math.round(w.score/w.max*100)}%;background:${colorMap[w.dir]}"></div>
+      </div>
+    </div>`).join('');
+
+  // Confluence list
+  const dotMap = { bull: 'cdot-bull', bear: 'cdot-bear', neut: 'cdot-neut' };
+  const arrowMap = { bull: 'arrow-up', bear: 'arrow-down', neut: 'minus' };
+
+  const confItems = [
+    ...(volPenalty ? [{ dir: 'bear', label: 'FAKE-OUT FILTER TRIGGERED', body: `Volume at ${vol.toFixed(2)}× — 50% SSI penalty applied to all scores. Every other signal below is potentially misleading.` }] : []),
+    { dir: volDir, label: `Volume ${vol.toFixed(2)}×`, body: volNote },
+    { dir: liqDir, label: 'Market structure / liquidation pools', body: liqNote },
+    ...maNotes.map(n => ({ dir: trendDir, label: n.label, body: n.body })),
+    ...macdNotes.map(n => ({ dir: trendDir, label: n.label, body: n.body })),
+    ...sentItems.map(s => ({ dir: sentDir, label: s.label, body: s.body })),
+  ];
+
+  document.getElementById('confluence-list').innerHTML = confItems.map(item => `
+    <div class="conf-item">
+      <div class="cdot ${dotMap[item.dir]}">${icoHTML(arrowMap[item.dir], 11)}</div>
+      <div>
+        <div class="conf-label">${item.label}</div>
+        <div class="conf-body">${item.body}</div>
+      </div>
+    </div>`).join('');
+
+  // Execution rules
+  const execCard = document.getElementById('exec-card');
+  if (direction === 'WAIT') {
+    execCard.style.display = 'none';
+  } else {
+    execCard.style.display = 'block';
+    const isLong = direction === 'LONG';
+    const spread = price * 0.015;
+    const slPct = 0.035;
+    const sl = isLong ? price * (1 - slPct) : price * (1 + slPct);
+    const tp1 = isLong ? price * 1.04 : price * 0.96;
+    const tp2 = isLong ? price * 1.075 : price * 0.925;
+    const tp3 = isLong ? price * 1.13 : price * 0.87;
+    const entryHigh = price;
+    const entryLow = isLong ? price - spread : price + spread;
+    const rrRatio = (Math.abs(tp2 - price) / Math.abs(sl - price)).toFixed(1);
+    const posSize = finalSSI >= 75 ? '2–3%' : finalSSI >= 60 ? '1–2%' : '0.5–1%';
+
+    document.getElementById('exec-body').innerHTML = `
+      <div class="exec-row">
+        <span class="exec-lbl">${icoHTML('map-pin',13)} Trigger / entry zone</span>
+        <span class="exec-val ev-entry">$${fmt(entryLow)} – $${fmt(entryHigh)} <span style="font-size:10px;color:var(--text3)">(scale in)</span></span>
+      </div>
+      <div class="exec-row">
+        <span class="exec-lbl">${icoHTML('shield-x',13)} Invalidation / stop loss</span>
+        <span class="exec-val ev-sl">$${fmt(sl)} <span style="font-size:10px;color:var(--text3)">(${isLong ? '−' : '+'}3.5% structural breakdown)</span></span>
+      </div>
+      <div class="exec-row">
+        <span class="exec-lbl">${icoHTML('flag-2',13)} Take profit targets</span>
+        <div class="tp-row">
+          <span class="tp-pill">TP1 $${fmt(tp1)}</span>
+          <span class="tp-pill">TP2 $${fmt(tp2)}</span>
+          <span class="tp-pill">TP3 $${fmt(tp3)}</span>
+        </div>
+      </div>
+      <div class="exec-row">
+        <span class="exec-lbl">${icoHTML('percentage',13)} Suggested position size</span>
+        <span class="exec-val ev-size">${posSize} of portfolio</span>
+      </div>
+      <div class="exec-row">
+        <span class="exec-lbl">${icoHTML('arrows-right-left',13)} Risk / reward ratio</span>
+        <span class="exec-val ev-rr">1 : ${rrRatio} (to TP2)</span>
+      </div>`;
+  }
+
+  // Risk warning
+  let riskText = '', riskClass = 'risk-med', riskIco = 'alert-triangle';
+  if (volPenalty) {
+    riskText = `Low volume (${vol.toFixed(2)}×) makes this entire setup a potential fake-out — all bullish confluence is unreliable until volume expands above 1.1×. Do not enter.`;
+    riskClass = 'risk-high'; riskIco = 'alert-octagon';
+  } else if (liq === 'into_pools') {
+    riskText = 'Entering long directly into overhead liquidation pools is a classic institutional trap. Smart money uses these pools to exit — you would be providing the exit liquidity.';
+    riskClass = 'risk-high'; riskIco = 'alert-octagon';
+  } else if (ma === 'dc_strong' && direction === 'LONG') {
+    riskText = 'A confirmed death cross invalidates the bullish case at the macro level — any LONG here is a counter-trend bet against institutional positioning. Extreme caution.';
+    riskClass = 'risk-high'; riskIco = 'alert-octagon';
+  } else if (rsi > 72) {
+    riskText = `RSI at ${rsi.toFixed(1)} is overbought — entering at these levels compresses your upside potential and raises the probability of a mean-reversion pullback before continuation.`;
+    riskClass = 'risk-high'; riskIco = 'alert-triangle';
+  } else if (finalSSI >= 65 && !volPenalty) {
+    riskText = `${finalSSI}% SSI is a high-confidence setup. Maintain strict stop at $${fmt(price * (direction === 'LONG' ? 0.965 : 1.035))} and scale into position — never full size at once.`;
+    riskClass = 'risk-low'; riskIco = 'shield-check';
+  } else {
+    riskText = `${finalSSI}% SSI is a borderline setup. One adverse macro catalyst could rapidly invalidate all signals. Size down to 0.5–1% max and require 1:3+ R/R before entry.`;
+    riskClass = 'risk-med'; riskIco = 'alert-triangle';
+  }
+  document.getElementById('risk-card').className = 'risk-card ' + riskClass;
+  document.getElementById('risk-ico').innerHTML = icoHTML(riskIco, 16);
+  document.getElementById('risk-text').textContent = riskText;
+
+  // Action buttons
+  const actRow = document.getElementById('actions-row');
+  const payload = `Asset: ${pair} | Price: $${price} | 24h range position: ${range}% | RSI: ${rsi} | MACD histogram: ${macdH} | MA structure: ${ma} | Volume: ${vol}× avg | Liquidity: ${liq} | Fear & Greed: ${fng} | Calculated SSI: ${finalSSI}% | Direction: ${direction}`;
+  actRow.innerHTML = `
+    <button class="act-btn" id="act-deep">${icoHTML('brain',13)} <span>Ask for deeper analysis ↗</span></button>
+    <button class="act-btn" id="act-risk">${icoHTML('shield',13)} <span>Risk management guide ↗</span></button>
+    <button class="act-btn" id="act-alt">${icoHTML('git-branch',13)} <span>Alternative scenarios ↗</span></button>`;
+
+  document.getElementById('act-deep').onclick = () => {
+    if (typeof sendPrompt === 'function') sendPrompt(`Using the Quantitative SSI framework, give me a full deeper analysis for this setup: ${payload}`);
+    else alert('Open in Claude.ai to use AI follow-up questions.\n\nPayload:\n' + payload);
+  };
+  document.getElementById('act-risk').onclick = () => {
+    if (typeof sendPrompt === 'function') sendPrompt(`Give me a detailed risk management plan for this ${pair} ${direction} setup with SSI ${finalSSI}%. Entry price $${price}. Include position sizing, stop rules, and scaling strategy.`);
+    else alert('Open in Claude.ai to use AI follow-up questions.');
+  };
+  document.getElementById('act-alt').onclick = () => {
+    if (typeof sendPrompt === 'function') sendPrompt(`What are the 2–3 most likely alternative scenarios if the ${direction} setup on ${pair} (SSI ${finalSSI}%) fails? What signals would confirm each scenario?`);
+    else alert('Open in Claude.ai to use AI follow-up questions.');
+  };
+
+  // Re-render all lucide icons inside results
+  reIcons(document.getElementById('results'));
+
+  document.getElementById('results').className = 'results show';
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Init icons ─────────────────────────────────────────────────────────────
+function initIcons() {
+  const logoBox = document.getElementById('logo-box');
+  const lIco = mkIco('cpu', 22);
+  logoBox.appendChild(lIco);
+
+  const badge = document.getElementById('badge-el');
+  const bIco = mkIco('shield-check', 12);
+  badge.appendChild(bIco);
+  badge.appendChild(document.createTextNode(' Capital-first · Noise-filtered'));
+
+  const philTitle = document.getElementById('phil-title');
+  const ptIco = mkIco('info', 12);
+  philTitle.appendChild(ptIco);
+  philTitle.appendChild(document.createTextNode(' Core engine philosophy'));
+
+  const philItems = [
+    { icon: 'shield', text: 'Protect capital first — noise reduction before profit seeking.' },
+    { icon: 'bar-chart-2', text: 'Volume MUST validate price. No volume = No trade.' },
+    { icon: 'droplets', text: 'Liquidity pools define real structure, not just price levels.' },
+    { icon: 'layers', text: 'Confluence of 4 weighted signals required for high-confidence entries.' },
+  ];
+  const pg = document.getElementById('phil-grid');
+  philItems.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'phil-item';
+    const ico = mkIco(p.icon, 11);
+    div.appendChild(ico);
+    div.appendChild(document.createTextNode(' ' + p.text));
+    pg.appendChild(div);
+  });
+
+  // Section labels
+  const sl1 = document.getElementById('sl-asset');
+  const s1ico = mkIco('layers-intersect', 13);
+  sl1.appendChild(s1ico);
+  sl1.appendChild(document.createTextNode(' Select asset'));
+  sl1.appendChild(document.createElement('span'));
+
+  const sl2 = document.getElementById('sl-input');
+  const s2ico = mkIco('sliders', 13);
+  sl2.appendChild(s2ico);
+  sl2.appendChild(document.createTextNode(' Market data input'));
+
+  const sl3 = document.getElementById('sl-alpha');
+  const s3ico = mkIco('zap', 13);
+  sl3.appendChild(s3ico);
+  sl3.appendChild(document.createTextNode(' Alpha metric'));
+
+  // Pair icons
+  const piMap = { BTC: 'bitcoin', ETH: 'zap', SOL: 'sun' };
+  ['BTC','ETH','SOL'].forEach(b => {
+    const el = document.getElementById('pi-'+b);
+    if (!el) return;
+    const ico = mkIco(piMap[b], 14);
+    el.appendChild(ico);
+  });
+
+  // Analyze button icon
+  const aIco = document.getElementById('analyze-ico');
+  const ai = mkIco('brain', 16);
+  aIco.appendChild(ai);
+
+  // Confluence / exec titles
+  const ct1 = document.getElementById('ct-confluence');
+  if (ct1) {
+    const ci = mkIco('git-merge', 13);
+    ct1.appendChild(ci);
+    ct1.appendChild(document.createTextNode(' Confluence breakdown'));
+  }
+  const ct2 = document.getElementById('ct-exec');
+  if (ct2) {
+    const ci2 = mkIco('target', 13);
+    ct2.appendChild(ci2);
+    ct2.appendChild(document.createTextNode(' Real-world execution rules'));
+  }
+
+  lucide.createIcons();
+}
+
+initIcons();
+</script>
+</body>
+</html>

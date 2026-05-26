@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import NetworkErrorBanner from "@/components/ui/NetworkErrorBanner";
 
 const PASSWORD_RULES = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
 const RATE_LIMIT_WINDOW = 2000;
 
 export default function UpdatePasswordPage() {
   const router = useRouter();
+  const isOnline = useOnlineStatus();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -104,6 +107,8 @@ export default function UpdatePasswordPage() {
           <p className="mt-1.5 text-sm text-muted">Enter your new password below</p>
         </div>
 
+        <NetworkErrorBanner />
+
         <div className="rounded-2xl border border-border bg-surface-elevated p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -142,10 +147,10 @@ export default function UpdatePasswordPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !isOnline}
               className="w-full rounded-xl bg-primary py-2.5 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-40 transition-colors"
             >
-              {loading ? "Updating..." : "Update password"}
+              {loading ? "Updating..." : !isOnline ? "No internet connection" : "Update password"}
             </button>
           </form>
         </div>
