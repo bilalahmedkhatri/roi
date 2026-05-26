@@ -194,27 +194,27 @@ create index if not exists idx_notifications_user_read on public.notifications(u
 -- ============================================================
 create view public.user_transactions as
 select
-  'Deposit' as type,
+  'Deposit'::text as type,
   amount,
-  method,
-  status,
+  method::text,
+  status::text,
   created_at::date as date,
   created_at as sort_date,
   user_id
 from public.deposits
 union all
 select
-  'Withdrawal',
+  'Withdrawal'::text,
   amount,
-  method,
-  status,
+  method::text,
+  status::text,
   created_at::date,
   created_at,
   user_id
 from public.withdrawals
 union all
 select
-  'Earnings',
+  'Earnings'::text,
   e.amount,
   coalesce(i.plan::text, 'System') as method,
   'completed' as status,

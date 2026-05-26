@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import NetworkErrorBanner from "@/components/ui/NetworkErrorBanner";
 
 const RATE_LIMIT_WINDOW = 2000;
 

@@ -20,7 +20,7 @@ CREATE POLICY "Anyone can read game rounds"
 -- Game Bets Table
 CREATE TABLE IF NOT EXISTS public.game_bets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES public.users(id),
+  user_id UUID NOT NULL REFERENCES public.users(auth_id),
   round_id UUID NOT NULL REFERENCES public.game_rounds(id),
   wager_amount NUMERIC(15,4) NOT NULL,
   balance_type VARCHAR(10) NOT NULL CHECK (balance_type IN ('real', 'bonus')),

@@ -25,12 +25,19 @@ export function formatAmountWithSign(amount: number, isPK: boolean, prefix = "+"
   return `${prefix}${formatted}`;
 }
 
+export const CRYPTO_RATES: Record<string, number> = {
+  BTC: 76616.44,
+  ETH: 2600.00,
+  USDT: 1.00,
+  SOL: 120.00,
+};
+
+export const USD_TO_PKR = 278.50;
+
 export function formatCryptoRates(): string {
-  return "1 BTC ≈ $67,542 | 1 ETH ≈ $3,457 | 1 SOL ≈ $142.56";
+  return `1 BTC ≈ $${CRYPTO_RATES.BTC.toLocaleString()} | 1 ETH ≈ $${CRYPTO_RATES.ETH.toLocaleString()} | 1 SOL ≈ $${CRYPTO_RATES.SOL.toLocaleString()}`;
 }
 
-const PKR_RATE = 278.5;
-
 export function convertToPKR(usdAmount: number): number {
-  return usdAmount * PKR_RATE;
+  return usdAmount * USD_TO_PKR;
 }

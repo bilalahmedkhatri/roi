@@ -1,23 +1,45 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Card from "@/components/ui/Card";
 import { supabase } from "@/lib/supabase/client";
-import { detectPakistan } from "@/lib/country";
+import { detectPakistan, CRYPTO_RATES, USD_TO_PKR } from "@/lib/country";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import NetworkErrorBanner from "@/components/ui/NetworkErrorBanner";
 
 type Method = "easypaisa" | "jazzcash" | "crypto";
 
+const CRYPTO_LOGOS: Record<string, string> = {
+  BTC: "₿",
+  ETH: "⟠",
+  USDT: "₮",
+  SOL: "◎",
+  BNB: "⬤",
+  XRP: "✕",
+  ADA: "₳",
+  DOT: "●",
+};
+
+const FIAT_DECIMALS = 2;
+const CRYPTO_DECIMALS = 8;
+
 export default function DepositPage() {
   const isPK = detectPakistan();
+  const isOnline = useOnlineStatus();
   const [isVerified, setIsVerified] = useState(true);
   const [method, setMethod] = useState<Method>("easypaisa");
+  const [cryptoCurrency, setCryptoCurrency] = useState("");
   const [amount, setAmount] = useState("");
+  const [cryptoQty, setCryptoQty] = useState("");
+  const [fiatQty, setFiatQty] = useState("");
+  const [lastChanged, setLastChanged] = useState<"crypto" | "fiat" | null>(null);
   const [transactionId, setTransactionId] = useState("");
   const [senderName, setSenderName] = useState("");
   const [senderNumber, setSenderNumber] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+  const [copyTip, setCopyTip] = useState<{ x: number; y: number } | null>(null);
   const [settings, setSettings] = useState<{
     crypto_addresses: Record<string, string>;
     till_ids: Record<string, string>;
@@ -33,14 +55,71 @@ export default function DepositPage() {
     });
   }, []);
 
-  const num = parseFloat(amount) || 0;
   const isCrypto = method === "crypto";
-  const min = isCrypto ? 25 : 5;
-  const valid = num >= min && transactionId.trim() && senderName.trim() && senderNumber.trim();
+  const cryptoCurrencies = settings?.crypto_addresses ? Object.keys(settings.crypto_addresses) : [];
+  const num = parseFloat(amount) || 0;
+  const min = isCrypto ? 0 : 1500;
+
+  const fiatNum = parseFloat(fiatQty) || 0;
+  const bonus = isCrypto ? fiatNum * 0.1 : 0;
+  const fiatSymbol = isPK ? "Rs." : "$";
+
+  const cryptoRate = cryptoCurrency ? CRYPTO_RATES[cryptoCurrency.toUpperCase()] || 0 : 0;
+  const fiatMultiplier = isPK ? cryptoRate * USD_TO_PKR : cryptoRate;
+
+  const valid = isCrypto
+    ? fiatNum > 0 && !!cryptoCurrency && transactionId.trim().length > 0 && senderName.trim().length > 0 && senderNumber.trim().length > 0
+    : num >= min && transactionId.trim().length > 0 && senderName.trim().length > 0 && senderNumber.trim().length > 0;
 
   const pkMethods: Method[] = ["easypaisa", "jazzcash", "crypto"];
   const intlMethods: Method[] = ["crypto"];
   const availableMethods = isPK ? pkMethods : intlMethods;
+
+  const handleCryptoQtyChange = useCallback((val: string) => {
+    setCryptoQty(val);
+    setLastChanged("crypto");
+    if (val === "") {
+      setFiatQty("");
+      return;
+    }
+    const qty = parseFloat(val) || 0;
+    if (qty > 0 && fiatMultiplier > 0) {
+      setFiatQty((qty * fiatMultiplier).toFixed(FIAT_DECIMALS));
+    } else {
+      setFiatQty("");
+    }
+  }, [fiatMultiplier]);
+
+  const handleFiatQtyChange = useCallback((val: string) => {
+    setFiatQty(val);
+    setLastChanged("fiat");
+    if (val === "") {
+      setCryptoQty("");
+      return;
+    }
+    const fv = parseFloat(val) || 0;
+    if (fv > 0 && fiatMultiplier > 0) {
+      setCryptoQty((fv / fiatMultiplier).toFixed(CRYPTO_DECIMALS));
+    } else {
+      setCryptoQty("");
+    }
+  }, [fiatMultiplier]);
+
+  const handleMethodChange = (m: Method) => {
+    setMethod(m);
+    setCryptoCurrency("");
+    setCryptoQty("");
+    setFiatQty("");
+    setAmount("");
+    setLastChanged(null);
+  };
+
+  const handleCryptoCurrencyChange = (cc: string) => {
+    setCryptoCurrency(cc);
+    setCryptoQty("");
+    setFiatQty("");
+    setLastChanged(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,18 +127,27 @@ export default function DepositPage() {
     setError("");
     setSubmitting(true);
 
+    const p_amount = isCrypto ? Math.round(fiatNum) : Math.round(num);
+
     const { error: rpcError } = await supabase.rpc("submit_deposit", {
-      p_amount: num,
+      p_amount,
       p_method: method === "easypaisa" ? "Easypaisa" : method === "jazzcash" ? "JazzCash" : "Crypto",
       p_transaction_id: transactionId.trim(),
       p_sender_name: senderName.trim(),
       p_sender_number: senderNumber.trim(),
+      p_crypto_currency: isCrypto ? cryptoCurrency : null,
+      p_raw_crypto: isCrypto ? parseFloat(cryptoQty) : null,
+      p_currency_used: isCrypto ? (isPK ? "PKR" : "USD") : null,
     });
 
     setSubmitting(false);
 
     if (rpcError) {
-      setError(rpcError.message);
+      if (rpcError.message?.includes("deposits_tx_unique")) {
+        setError("This transaction ID has already been used. Please check your ID or contact support.");
+      } else {
+        setError(rpcError.message);
+      }
       return;
     }
 
@@ -69,6 +157,7 @@ export default function DepositPage() {
   if (submitted) {
     return (
       <div className="space-y-6">
+        <NetworkErrorBanner />
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Deposit</h1>
           <p className="text-sm text-muted">Add funds to your account</p>
@@ -82,7 +171,7 @@ export default function DepositPage() {
             </div>
             <h2 className="mt-4 text-lg font-semibold">Deposit Request Submitted</h2>
             <p className="mt-2 text-sm text-muted max-w-sm mx-auto">
-              Your deposit of {isCrypto ? `$${num.toFixed(2)}` : `Rs. ${num.toFixed(2)}`} via {method} is now in process.
+              Your deposit of {isCrypto ? `${fiatSymbol} ${fiatNum.toFixed(FIAT_DECIMALS)}` : `Rs. ${num.toFixed(FIAT_DECIMALS)}`} via {method}{isCrypto && cryptoCurrency ? ` (${cryptoCurrency})` : ""} is now in process.
               It will be confirmed within 5 to 10 minutes. If not approved, contact support with your deposit slip screenshot.
             </p>
           </div>
@@ -93,14 +182,16 @@ export default function DepositPage() {
 
   const methodLabel = (m: Method) =>
     m === "crypto"
-      ? `Crypto (Min $25 USD - +10% bonus)`
+      ? `Crypto (+10% bonus) ${isPK ? "(Min Rs. 7,000 eq.)" : "(Min $25 eq.)"}`
       : `${m.charAt(0).toUpperCase() + m.slice(1)} (Min Rs. 1,500)`;
 
   const tillId = method !== "crypto" ? settings?.till_ids?.[method] : null;
-  const cryptoAddresses = settings?.crypto_addresses;
+  const selectedAddress = isCrypto && cryptoCurrency ? settings?.crypto_addresses?.[cryptoCurrency] : null;
 
   return (
     <div className="space-y-6">
+      <NetworkErrorBanner />
+
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Deposit</h1>
         <p className="text-sm text-muted">Add funds to your account</p>
@@ -119,7 +210,7 @@ export default function DepositPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium mb-2">Payment Method</label>
-            <select value={method} onChange={(e) => setMethod(e.target.value as Method)}
+            <select value={method} onChange={(e) => handleMethodChange(e.target.value as Method)}
               className="block w-full rounded-xl border border-border bg-surface-elevated px-4 py-2.5 text-sm focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
             >
               {availableMethods.map((m) => (
@@ -127,6 +218,20 @@ export default function DepositPage() {
               ))}
             </select>
           </div>
+
+          {isCrypto && cryptoCurrencies.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium mb-2">Crypto Currency</label>
+              <select value={cryptoCurrency} onChange={(e) => handleCryptoCurrencyChange(e.target.value)}
+                className="uppercase block w-full rounded-xl border border-border bg-surface-elevated px-4 py-2.5 text-sm focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
+              >
+                <option value="">Select currency</option>
+                {cryptoCurrencies.map((cc) => (
+                  <option key={cc} className="uppercase" value={cc}>{cc}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {isPK && !isCrypto && tillId && (
             <div className="rounded-xl border border-border bg-surface p-5 text-center space-y-2">
@@ -136,23 +241,49 @@ export default function DepositPage() {
             </div>
           )}
 
-          {(isCrypto || !isPK) && cryptoAddresses && (
-            <div className="rounded-xl border border-border bg-surface p-4 space-y-3">
-              <p className="text-xs font-medium text-muted">Send crypto to one of these addresses:</p>
-              {Object.entries(cryptoAddresses).map(([coin, addr]) => (
-                <div key={coin} className="text-sm">
-                  <span className="font-medium uppercase text-primary">{coin}:</span>{" "}
-                  <span className="text-muted break-all">{addr}</span>
-                </div>
-              ))}
-              <p className="text-xs text-muted">Min $25 — receives +10% bonus</p>
+          {isCrypto && selectedAddress && (
+            <div className="rounded-xl border border-border bg-surface p-5 text-center space-y-2">
+              <p className="text-xs md:text-lg font-medium text-muted">Send <span className="uppercase">{cryptoCurrency}</span> to this address</p>
+              <p
+                className="text-sm md:text-lg font-mono tracking-tight text-primary break-all bg-background/50 rounded-lg p-3 border border-border/50 cursor-pointer select-all hover:bg-background/80 transition-colors"
+                onClick={(e) => {
+                  navigator.clipboard.writeText(selectedAddress);
+                  setCopyTip({ x: e.clientX, y: e.clientY });
+                  setTimeout(() => setCopyTip(null), 1200);
+                }}
+              >
+                {selectedAddress}
+              </p>
+              {copyTip && (
+                <span
+                  className="fixed pointer-events-none text-xs bg-foreground text-background px-2 py-1 rounded-md shadow-lg z-50"
+                  style={{ left: copyTip.x - 24, top: copyTip.y - 32 }}
+                >
+                  Copied!
+                </span>
+              )}
             </div>
           )}
 
-          {!isPK && (
+          {isCrypto && cryptoCurrency && !selectedAddress && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+              <p className="text-xs text-amber-800">No address configured for <span className="uppercase">{cryptoCurrency}</span>. Contact support.</p>
+            </div>
+          )}
+
+          {isCrypto && cryptoCurrency && cryptoRate > 0 && (
+            <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 text-center">
+              <p className="uppercase text:sm md:text-lg  text-blue-400">
+                1 {cryptoCurrency} = {isPK ? `Rs. ${(cryptoRate * USD_TO_PKR).toLocaleString()}` : `$${cryptoRate.toLocaleString()}`}
+                {isPK ? ` ($${cryptoRate.toLocaleString()})` : ""}
+              </p>
+            </div>
+          )}
+
+          {!isPK && !isCrypto && (
             <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
-              <p className="text-xs text-blue-400 leading-relaxed">
-                Current rates: 1 BTC ≈ $67,542 | 1 ETH ≈ $3,457 | 1 SOL ≈ $142.56
+              <p className="text-md text-blue-400 leading-relaxed">
+                Current rates: 1 BTC ≈ ${CRYPTO_RATES.BTC.toLocaleString()} | 1 ETH ≈ ${CRYPTO_RATES.ETH.toLocaleString()} | 1 SOL ≈ ${CRYPTO_RATES.SOL.toLocaleString()}
               </p>
             </div>
           )}
@@ -169,23 +300,50 @@ export default function DepositPage() {
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium">Amount ({isCrypto ? "USD" : "PKR"})</label>
-            <div className="mt-1.5 relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted">{isCrypto ? "$" : "Rs."}</span>
-              <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)}
-                className="block w-full rounded-xl border border-border bg-transparent pl-10 pr-4 py-2.5 text-sm focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
-                placeholder="0.00" min={min} step="0.01" />
+          {isCrypto && cryptoCurrency && cryptoRate > 0 ? (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1.5">Crypto Amount ({cryptoCurrency})</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted font-medium">
+                    {CRYPTO_LOGOS[cryptoCurrency] || "⟐"}
+                  </span>
+                  <input type="number" value={cryptoQty} onChange={(e) => handleCryptoQtyChange(e.target.value)}
+                    className="block w-full rounded-xl border border-border bg-transparent pl-10 pr-4 py-2.5 text-sm focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
+                    placeholder="0.00000000" step="0.00000001" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1.5">Amount ({isPK ? "PKR eq." : "USD eq."})</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted font-medium">{fiatSymbol}</span>
+                  <input type="number" value={fiatQty} onChange={(e) => handleFiatQtyChange(e.target.value)}
+                    className="block w-full rounded-xl border border-border bg-transparent pl-10 pr-4 py-2.5 text-sm focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
+                    placeholder="0.00" step="0.01" />
+                </div>
+              </div>
+              {bonus > 0 && (
+                <p className="text-xs text-primary">+10% crypto bonus: {fiatSymbol} {bonus.toFixed(FIAT_DECIMALS)} extra</p>
+              )}
             </div>
-            {!valid && amount && (
-              <p className="mt-1.5 text-xs text-red-400">
-                {isCrypto ? `Minimum deposit is $${min} for crypto` : "Minimum deposit is Rs. 1,500"}
-              </p>
-            )}
-            {method === "crypto" && num >= 25 && (
-              <p className="mt-1.5 text-xs text-primary">+10% crypto bonus: ${(num * 0.1).toFixed(2)} extra</p>
-            )}
-          </div>
+          ) : isCrypto && cryptoCurrency && cryptoRate === 0 ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+              <p className="text-xs text-amber-800">Exchange rate not available for <span className="uppercase">{cryptoCurrency}</span>. Contact support.</p>
+            </div>
+          ) : !isCrypto ? (
+            <div>
+              <label className="block text-sm font-medium">Amount (PKR)</label>
+              <div className="mt-1.5 relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted font-medium">Rs.</span>
+                <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)}
+                  className="block w-full rounded-xl border border-border bg-transparent pl-10 pr-4 py-2.5 text-sm focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
+                  placeholder="0.00" step="0.01" />
+              </div>
+              {!valid && amount && num < min && (
+                <p className="mt-1.5 text-xs text-red-400">Minimum deposit is Rs. 1,500</p>
+              )}
+            </div>
+          ) : null}
 
           <div>
             <label className="block text-sm font-medium">Transaction ID</label>
@@ -211,13 +369,13 @@ export default function DepositPage() {
 
           {error && (
             <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-3">
-              <p className="text-xs text-red-400">{error}</p>
+              <p className="text-xs md:text-sm text-red-400">{error}</p>
             </div>
           )}
 
-          <button type="submit" disabled={!valid || submitting || !isVerified}
-            className="w-full rounded-xl bg-primary py-2.5 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-40 transition-colors">
-            {submitting ? "Submitting..." : "Submit Deposit Request"}
+          <button type="submit" disabled={!valid || submitting || !isVerified || !isOnline}
+            className="cursor-pointer w-full rounded-xl bg-primary py-2.5 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-40 transition-colors">
+            {submitting ? "Submitting..." : !isOnline ? "No internet connection" : "Submit Deposit Request"}
           </button>
         </form>
       </Card>

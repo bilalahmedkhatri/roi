@@ -38,14 +38,6 @@ export default function Footer() {
             </ul>
           </div>
 
-          <div className="space-y-4">
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">Contact</h3>
-            <ul className="space-y-2.5">
-              <li className="text-sm text-muted">support@roiaitrading.com</li>
-              <li className="text-sm text-muted">New York, USA</li>
-              <li className="text-sm text-muted">24/7 Support</li>
-            </ul>
-          </div>
         </div>
 
         <div className="mt-12 pt-8 border-t border-border">

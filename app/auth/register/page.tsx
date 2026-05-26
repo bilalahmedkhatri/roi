@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { detectPakistan } from "@/lib/country";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import NetworkErrorBanner from "@/components/ui/NetworkErrorBanner";
 
 const PASSWORD_RULES = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
 const RATE_LIMIT_WINDOW = 2000;
@@ -12,6 +14,7 @@ const RATE_LIMIT_WINDOW = 2000;
 export default function RegisterPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const isOnline = useOnlineStatus();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -34,11 +37,12 @@ export default function RegisterPage() {
     setTimezone(tz);
     setCountry(detectPakistan() ? "Pakistan" : "");
 
-    fetch("https://ipwho.is/")
+    fetch("/api/location")
       .then((r) => r.json())
       .then((d) => {
         if (d.city) setCity(d.city);
-        if (d.country && !detectPakistan()) setCountry(d.country);
+        if (d.timezone) setTimezone(d.timezone);
+        if (d.country) setCountry(d.country);
       })
       .catch(() => {});
   }, [searchParams]);
@@ -106,6 +110,8 @@ export default function RegisterPage() {
           <p className="mt-1.5 text-sm text-muted">Start your AI trading journey</p>
         </div>
 
+        <NetworkErrorBanner />
+
         <div className="rounded-2xl border border-border bg-surface-elevated p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -146,9 +152,9 @@ export default function RegisterPage() {
               </div>
             )}
 
-            <button type="submit" disabled={loading}
+            <button type="submit" disabled={loading || !isOnline}
               className="w-full rounded-xl bg-primary py-2.5 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-40">
-              {loading ? "Creating account..." : "Create account"}
+              {loading ? "Creating account..." : !isOnline ? "No internet connection" : "Create account"}
             </button>
           </form>
         </div>

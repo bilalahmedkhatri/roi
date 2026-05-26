@@ -58,6 +58,12 @@ export default function RootLayout({
       lang="en"
       className={`${inter.variable} ${jetbrainsMono.variable} dark`}
     >
+      <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body className="min-h-dvh flex flex-col bg-background text-foreground antialiased">
         <LayoutClient>{children}</LayoutClient>
       </body>

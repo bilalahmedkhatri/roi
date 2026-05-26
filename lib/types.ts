@@ -20,7 +20,6 @@ export interface User {
   status: UserStatus;
   address?: string;
   city?: string;
-  withdrawAddress?: string;
   country?: string;
   timezone?: string;
   referralCode?: string;
@@ -32,8 +31,34 @@ export interface User {
   depositCount: number;
   lastDepositMethod?: string;
   isVerified: boolean;
+  siteId?: number;
+  securityQuestion1?: string;
+  securityAnswer1?: string;
+  securityQuestion2?: string;
+  securityAnswer2?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface UserPaymentMethod {
+  id: number;
+  uuid: string;
+  userId: number;
+  type: 'Easypaisa' | 'JazzCash' | 'crypto' | 'bank';
+  accountNumber?: string;
+  accountName?: string;
+  cryptoCurrency?: string;
+  cryptoAddress?: string;
+  bankName?: string;
+  isDefault: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SecurityQuestion {
+  id: number;
+  question: string;
 }
 
 export interface StaffPermission {

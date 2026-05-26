@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Card from "@/components/ui/Card";
-import { supabase } from "@/lib/supabase/client";
 import { detectPakistan, formatAmount } from "@/lib/country";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import NetworkErrorBanner from "@/components/ui/NetworkErrorBanner";
 
 const BASE_URL = "https://roiaitrading.com";
 
 export default function ReferralPage() {
   const isPK = detectPakistan();
+  const isOnline = useOnlineStatus();
   const [referralCode, setReferralCode] = useState("");
   const [stats, setStats] = useState<{
     totalReferred: number;
@@ -18,26 +20,26 @@ export default function ReferralPage() {
   } | null>(null);
   const [referrals, setReferrals] = useState<any[]>([]);
   const [copied, setCopied] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      supabase.rpc("get_referral_stats").single(),
-      supabase.rpc("get_referral_list"),
-    ]).then(([statsRes, listRes]) => {
-      const stats = statsRes.data as any;
-      if (stats) {
-        setReferralCode(stats.referral_code || "");
-        setStats({
-          totalReferred: Number(stats.total_referred),
-          activeReferred: Number(stats.active_referred),
-          totalDeposits: Number(stats.total_deposits),
-          commissionEarned: Number(stats.commission_earned),
-        });
-      }
-      if (listRes.data) setReferrals(listRes.data as any);
-      setLoading(false);
-    });
+    fetch("/api/referral")
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to fetch");
+        return r.json();
+      })
+      .then((data) => {
+        if (data.stats) {
+          setReferralCode(data.stats.referral_code || "");
+          setStats({
+            totalReferred: Number(data.stats.total_referred),
+            activeReferred: Number(data.stats.active_referred),
+            totalDeposits: Number(data.stats.total_deposits),
+            commissionEarned: Number(data.stats.commission_earned),
+          });
+        }
+        if (data.referrals) setReferrals(data.referrals);
+      })
+      .catch(() => {});
   }, []);
 
   const referralLink = `${BASE_URL}/auth/register?ref=${referralCode}`;
@@ -48,16 +50,9 @@ export default function ReferralPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
+      <NetworkErrorBanner />
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Referral Program</h1>
         <p className="text-sm text-muted">Invite friends and earn together</p>
@@ -90,7 +85,7 @@ export default function ReferralPage() {
             className="flex-1 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-muted select-all"
           />
           <button onClick={handleCopy}
-            className="shrink-0 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-dark transition-colors"
+            className="cursor-pointer shrink-0 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-dark transition-colors"
           >
             {copied ? "Copied!" : "Copy"}
           </button>

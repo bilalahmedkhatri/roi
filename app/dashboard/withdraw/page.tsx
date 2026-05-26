@@ -4,13 +4,17 @@ import { useState, useEffect } from "react";
 import Card from "@/components/ui/Card";
 import { supabase } from "@/lib/supabase/client";
 import { detectPakistan, formatBalance } from "@/lib/country";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import NetworkErrorBanner from "@/components/ui/NetworkErrorBanner";
 
 export default function WithdrawPage() {
   const isPK = detectPakistan();
+  const isOnline = useOnlineStatus();
   const [isVerified, setIsVerified] = useState(true);
   const [amount, setAmount] = useState("");
   const [balance, setBalance] = useState(0);
   const [lastMethod, setLastMethod] = useState("");
+  const [cryptoAddress, setCryptoAddress] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
@@ -32,8 +36,9 @@ export default function WithdrawPage() {
     load();
   }, []);
 
+  const isCrypto = lastMethod === "Crypto";
   const num = parseFloat(amount) || 0;
-  const valid = num > 0 && num <= balance;
+  const valid = num > 0 && num <= balance && (!isCrypto || cryptoAddress.trim().length > 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +48,7 @@ export default function WithdrawPage() {
 
     const { error: rpcError } = await supabase.rpc("submit_withdrawal", {
       p_amount: num,
+      p_crypto_address: isCrypto ? cryptoAddress.trim() : null,
     });
 
     setSubmitting(false);
@@ -58,6 +64,7 @@ export default function WithdrawPage() {
   if (submitted) {
     return (
       <div className="space-y-6">
+        <NetworkErrorBanner />
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Withdraw</h1>
           <p className="text-sm text-muted">Withdraw your funds</p>
@@ -81,6 +88,7 @@ export default function WithdrawPage() {
 
   return (
     <div className="space-y-6">
+      <NetworkErrorBanner />
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Withdraw</h1>
         <p className="text-sm text-muted">Withdraw your funds</p>
@@ -123,6 +131,20 @@ export default function WithdrawPage() {
             {num > balance && <p className="mt-1.5 text-xs text-red-400">Exceeds available balance</p>}
           </div>
 
+          {isCrypto && (
+            <div>
+              <label className="block text-sm font-medium">Crypto Withdrawal Address</label>
+              <textarea
+                value={cryptoAddress}
+                onChange={(e) => setCryptoAddress(e.target.value)}
+                rows={3}
+                className="mt-1.5 block w-full rounded-xl border border-border bg-transparent px-4 py-2.5 text-sm focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors placeholder:text-muted resize-none"
+                placeholder="Enter your wallet address (e.g. 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa)"
+                required
+              />
+            </div>
+          )}
+
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
             <p className="text-xs text-amber-800">
               Withdrawals process in 2-12 hours. You can only withdraw using the same method used during your last deposit ({lastMethod || "none"}).
@@ -135,9 +157,9 @@ export default function WithdrawPage() {
             </div>
           )}
 
-          <button type="submit" disabled={!valid || submitting || !isVerified}
-            className="w-full rounded-xl bg-primary py-2.5 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-40 transition-colors">
-            {submitting ? "Processing..." : `Withdraw ${isPK ? "Rs." : "$"}${num || "0.00"}`}
+          <button type="submit" disabled={!valid || submitting || !isVerified || !isOnline}
+            className="cursor-pointer w-full rounded-xl bg-primary py-2.5 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-40 transition-colors">
+            {submitting ? "Processing..." : !isOnline ? "No internet connection" : `Withdraw ${isPK ? "Rs." : "$"}${num || "0.00"}`}
           </button>
         </form>
       </Card>

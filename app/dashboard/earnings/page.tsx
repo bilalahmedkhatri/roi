@@ -4,31 +4,39 @@ import { useEffect, useState } from "react";
 import Card from "@/components/ui/Card";
 import StatusBadge from "@/components/ui/StatusBadge";
 import Pagination from "@/components/ui/Pagination";
-import { supabase } from "@/lib/supabase/client";
 import { detectPakistan, formatAmount } from "@/lib/country";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import NetworkErrorBanner from "@/components/ui/NetworkErrorBanner";
 
 const PER_PAGE = 5;
 
 export default function EarningsPage() {
   const isPK = detectPakistan();
+  const isOnline = useOnlineStatus();
   const [page, setPage] = useState(1);
-  const [earnings, setEarnings] = useState<any[]>([]);
+  const [earnings, setEarnings] = useState<any[] | null>(null);
   const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    supabase.rpc("get_earnings", { p_page_size: PER_PAGE, p_page_number: page }).then(({ data }) => {
-      if (data) {
-        setEarnings(data);
-        setTotalPages(data.length < PER_PAGE ? page : page + 1);
-      }
-      setLoading(false);
-    });
+    fetch(`/api/earnings?pageSize=${PER_PAGE}&pageNumber=${page}`)
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to fetch");
+        return r.json();
+      })
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setEarnings(data);
+          setTotalPages(data.length < PER_PAGE ? page : page + 1);
+        } else {
+          setEarnings([]);
+        }
+      })
+      .catch(() => setEarnings([]));
   }, [page]);
 
   return (
     <div className="space-y-6">
+      <NetworkErrorBanner />
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Earnings</h1>
         <p className="text-sm text-muted">Detailed earnings history</p>
@@ -46,7 +54,7 @@ export default function EarningsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {loading ? (
+              {earnings === null ? (
                 <tr>
                   <td colSpan={5} className="py-8 text-center text-sm text-muted">Loading...</td>
                 </tr>

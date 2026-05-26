@@ -4,11 +4,14 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import NetworkErrorBanner from "@/components/ui/NetworkErrorBanner";
 
 const RATE_LIMIT_WINDOW = 2000;
 
 export default function LoginPage() {
   const router = useRouter();
+  const isOnline = useOnlineStatus();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -66,6 +69,8 @@ export default function LoginPage() {
           <p className="mt-1.5 text-sm text-muted">Sign in to your account</p>
         </div>
 
+        <NetworkErrorBanner />
+
         <div className="rounded-2xl border border-border bg-surface-elevated p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -92,9 +97,9 @@ export default function LoginPage() {
               </div>
             )}
 
-            <button type="submit" disabled={loading}
+            <button type="submit" disabled={loading || !isOnline}
               className="w-full rounded-xl bg-primary py-2.5 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-40 transition-colors">
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? "Signing in..." : !isOnline ? "No internet connection" : "Sign in"}
             </button>
           </form>
         </div>

@@ -278,7 +278,8 @@ grant execute on function public.submit_deposit(numeric, text, text, text, text)
 -- Validates: amount > 0, balance >= amount, no other pending withdrawal
 -- ============================================================
 create or replace function public.submit_withdrawal(
-  p_amount numeric
+  p_amount numeric,
+  p_crypto_address text default null
 )
 returns jsonb
 language plpgsql
@@ -303,7 +304,7 @@ begin
   end if;
 
   -- lock user row and get current state
-  select id, balance, last_deposit_method, phone, withdraw_address
+  select id, balance, last_deposit_method, phone
   into user_row
   from public.users
   where id = uid
@@ -312,6 +313,11 @@ begin
   -- check last deposit method
   if user_row.last_deposit_method is null then
     raise exception 'No deposit history found. Make a deposit first.';
+  end if;
+
+  -- require crypto address if withdrawing via crypto
+  if user_row.last_deposit_method = 'Crypto' and (p_crypto_address is null or p_crypto_address = '') then
+    raise exception 'Crypto withdrawal address is required';
   end if;
 
   -- check balance
@@ -337,7 +343,16 @@ begin
     user_row.phone,
     p_amount,
     user_row.last_deposit_method::payment_method,
-    case when user_row.last_deposit_method = 'Crypto' then user_row.withdraw_address else user_row.phone end,
+    case
+      when user_row.last_deposit_method = 'Crypto'
+        then p_crypto_address
+      else coalesce(
+        (select account_number from public.user_payment_methods
+         where user_id = uid and type = user_row.last_deposit_method::text
+         and is_default = true limit 1),
+        user_row.phone
+      )
+    end,
     'pending'
   )
   returning id into new_withdrawal_id;
@@ -350,8 +365,8 @@ begin
 end;
 $$;
 
-revoke all on function public.submit_withdrawal(numeric) from public;
-grant execute on function public.submit_withdrawal(numeric) to authenticated;
+revoke all on function public.submit_withdrawal(numeric, text) from public;
+grant execute on function public.submit_withdrawal(numeric, text) to authenticated;
 
 -- ============================================================
 -- 6. get_site_settings

@@ -91,6 +91,17 @@ begin
     'active', user_deposit_count + 1
   );
 
+  -- save withdrawal method for Easypaisa/JazzCash
+  if deposit_record.method::text in ('Easypaisa', 'JazzCash') then
+    insert into public.user_payment_methods (user_id, type, account_number, account_name, is_default, is_active)
+    values (deposit_record.user_id, deposit_record.method::text, deposit_record.sender_number, deposit_record.sender_name, true, true)
+    on conflict (user_id, type) do update set
+      account_number = excluded.account_number,
+      account_name = excluded.account_name,
+      is_default = true,
+      is_active = true;
+  end if;
+
   -- audit log
   perform public.log_audit(admin_id, 'deposit_approved', 'deposit', p_deposit_id,
     jsonb_build_object('user_id', deposit_record.user_id, 'amount', deposit_record.amount, 'bonus', deposit_record.bonus_amount, 'rate', rate, 'plan', plan_type));
